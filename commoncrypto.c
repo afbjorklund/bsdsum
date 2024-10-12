@@ -13,7 +13,7 @@ char *
 Digest_End(CCDigestRef ctx, char *buf)
 {
 	static const char hex[] = "0123456789abcdef";
-	uint8_t digest[32]; // SHA256 is the biggest
+	uint8_t digest[64]; // SHA512 is the biggest
 	size_t i, length;
 
 	(void)os_assumes_zero(CCDigestFinal(ctx, digest));

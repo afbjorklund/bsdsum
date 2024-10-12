@@ -1,7 +1,7 @@
 
 PROG = md5
 UNAME ?= $(shell uname)
-LINKS = rmd160 sha1 sha256
+LINKS = rmd160 sha1 sha256 sha512
 PROGS = $(PROG) $(LINKS)
 
 prefix = /usr/local
