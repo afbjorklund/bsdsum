@@ -39,5 +39,9 @@ clean:
 	$(RM) *.o
 	$(RM) $(PROGS)
 
+.PHONY: test
+test: $(PROGS)
+	for prog in $(PROGS); do ./$$prog -x; done
+
 $(LINKS): $(PROG)
 	$(LN_S) $< $@
