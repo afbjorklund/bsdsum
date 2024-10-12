@@ -31,12 +31,29 @@ __FBSDID("$FreeBSD$");
 #include <md5.h>
 #include <ripemd.h>
 #include <sha.h>
+#ifndef __linux__
 #include <sha224.h>
+#define HAVE_SHA224
+#else
+#include "sha224.h"
+#endif
 #include <sha256.h>
+#ifndef __linux__
 #include <sha384.h>
+#define HAVE_SHA384
+#else
+#include "sha384.h"
+#endif
 #include <sha512.h>
+#ifndef __linux__
 #include <sha512t.h>
+#define HAVE_SHA512_256
+#else
+#include "sha512t.h"
+#endif
+#ifndef __linux__
 #include <skein.h>
+#endif
 #endif /* !__APPLE__ */
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,9 +96,11 @@ extern const char *SHA384_TestOutput[MDTESTCOUNT];
 extern const char *SHA512_TestOutput[MDTESTCOUNT];
 extern const char *SHA512t256_TestOutput[MDTESTCOUNT];
 extern const char *RIPEMD160_TestOutput[MDTESTCOUNT];
+#ifndef __linux__
 extern const char *SKEIN256_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN512_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN1024_TestOutput[MDTESTCOUNT];
+#endif
 
 typedef struct Algorithm_t {
 	const char *progname;
@@ -118,14 +137,20 @@ typedef CCDigestCtx DIGEST_CTX;
 typedef union {
 	MD5_CTX md5;
 	SHA1_CTX sha1;
+#ifdef HAVE_SHA224
 	SHA224_CTX sha224;
+#endif
 	SHA256_CTX sha256;
+#ifdef HAVE_SHA384
 	SHA384_CTX sha384;
+#endif
 	SHA512_CTX sha512;
 	RIPEMD160_CTX ripemd160;
+#ifndef __linux__
 	SKEIN256_CTX skein256;
 	SKEIN512_CTX skein512;
 	SKEIN1024_CTX skein1024;
+#endif
 } DIGEST_CTX;
 #endif /* __APPLE__ */
 
@@ -145,9 +170,6 @@ typedef union {
 #define SHA512_Fd SHA512_File
 #define SHA512_256_Fd SHA512_256_File
 #define RIPEMD160_Fd RIPEMD160_File
-#define SKEIN256_Fd SKEIN256_File
-#define SKEIN512_Fd SKEIN512_File
-#define SKEIN1024_Fd SKEIN1024_File
 #endif
 
 static const struct Algorithm_t Algorithm[] = {
@@ -164,24 +186,31 @@ static const struct Algorithm_t Algorithm[] = {
 	{ "sha1", "SHA1", &SHA1_TestOutput, (DIGEST_Init*)&SHA1_Init,
 		(DIGEST_Update*)&SHA1_Update, (DIGEST_End*)&SHA1_End,
 		&SHA1_Data, &SHA1_Fd },
+#ifdef HAVE_SHA224
 	{ "sha224", "SHA224", &SHA224_TestOutput, (DIGEST_Init*)&SHA224_Init,
 		(DIGEST_Update*)&SHA224_Update, (DIGEST_End*)&SHA224_End,
 		&SHA224_Data, &SHA224_Fd },
+#endif
 	{ "sha256", "SHA256", &SHA256_TestOutput, (DIGEST_Init*)&SHA256_Init,
 		(DIGEST_Update*)&SHA256_Update, (DIGEST_End*)&SHA256_End,
 		&SHA256_Data, &SHA256_Fd },
+#ifdef HAVE_SHA384
 	{ "sha384", "SHA384", &SHA384_TestOutput, (DIGEST_Init*)&SHA384_Init,
 		(DIGEST_Update*)&SHA384_Update, (DIGEST_End*)&SHA384_End,
 		&SHA384_Data, &SHA384_Fd },
+#endif
 	{ "sha512", "SHA512", &SHA512_TestOutput, (DIGEST_Init*)&SHA512_Init,
 		(DIGEST_Update*)&SHA512_Update, (DIGEST_End*)&SHA512_End,
 		&SHA512_Data, &SHA512_Fd },
+#ifdef HAVE_SHA512_256
 	{ "sha512t256", "SHA512t256", &SHA512t256_TestOutput, (DIGEST_Init*)&SHA512_256_Init,
 		(DIGEST_Update*)&SHA512_256_Update, (DIGEST_End*)&SHA512_256_End,
 		&SHA512_256_Data, &SHA512_256_Fd },
+#endif
 	{ "rmd160", "RMD160", &RIPEMD160_TestOutput,
 		(DIGEST_Init*)&RIPEMD160_Init, (DIGEST_Update*)&RIPEMD160_Update,
 		(DIGEST_End*)&RIPEMD160_End, &RIPEMD160_Data, &RIPEMD160_Fd },
+#ifndef __linux__
 	{ "skein256", "Skein256", &SKEIN256_TestOutput,
 		(DIGEST_Init*)&SKEIN256_Init, (DIGEST_Update*)&SKEIN256_Update,
 		(DIGEST_End*)&SKEIN256_End, &SKEIN256_Data, &SKEIN256_Fd },
@@ -191,6 +220,7 @@ static const struct Algorithm_t Algorithm[] = {
 	{ "skein1024", "Skein1024", &SKEIN1024_TestOutput,
 		(DIGEST_Init*)&SKEIN1024_Init, (DIGEST_Update*)&SKEIN1024_Update,
 		(DIGEST_End*)&SKEIN1024_End, &SKEIN1024_Data, &SKEIN1024_Fd }
+#endif
 #endif
 };
 
@@ -462,6 +492,7 @@ const char *SHA1_TestOutput[MDTESTCOUNT] = {
 };
 
 #ifndef __APPLE__
+#ifdef HAVE_SHA224
 const char *SHA224_TestOutput[MDTESTCOUNT] = {
 	"d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
 	"abd37534c7d9a2efb9465de931cd7055ffdb8879563ae98078d6d6d5",
@@ -472,6 +503,7 @@ const char *SHA224_TestOutput[MDTESTCOUNT] = {
 	"b50aecbe4e9bb0b57bc5f3ae760a8e01db24f203fb3cdcd13148046e",
 	"5ae55f3779c8a1204210d7ed7689f661fbe140f96f272ab79e19d470"
 };
+#endif
 #endif
 
 const char *SHA256_TestOutput[MDTESTCOUNT] = {
@@ -486,6 +518,7 @@ const char *SHA256_TestOutput[MDTESTCOUNT] = {
 };
 
 #ifndef __APPLE__
+#ifdef HAVE_SHA384
 const char *SHA384_TestOutput[MDTESTCOUNT] = {
 	"38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
 	"54a59b9f22b0b80880d8427e548b7c23abd873486e1f035dce9cd697e85175033caa88e6d57bc35efae0b5afd3145f31",
@@ -496,6 +529,7 @@ const char *SHA384_TestOutput[MDTESTCOUNT] = {
 	"b12932b0627d1c060942f5447764155655bd4da0c9afa6dd9b9ef53129af1b8fb0195996d2de9ca0df9d821ffee67026",
 	"99428d401bf4abcd4ee0695248c9858b7503853acfae21a9cffa7855f46d1395ef38596fcd06d5a8c32d41a839cc5dfb"
 };
+#endif
 #endif
 
 const char *SHA512_TestOutput[MDTESTCOUNT] = {
@@ -510,6 +544,7 @@ const char *SHA512_TestOutput[MDTESTCOUNT] = {
 };
 
 #ifndef __APPLE__
+#ifdef HAVE_SHA512_256
 const char *SHA512t256_TestOutput[MDTESTCOUNT] = {
 	"c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a",
 	"455e518824bc0601f9fb858ff5c37d417d67c2f8e0df2babe4808858aea830f8",
@@ -520,6 +555,7 @@ const char *SHA512t256_TestOutput[MDTESTCOUNT] = {
 	"2c9fdbc0c90bdd87612ee8455474f9044850241dc105b1e8b94b8ddf5fac9148",
 	"dd095fc859b336c30a52548b3dc59fcc0d1be8616ebcf3368fad23107db2d736"
 };
+#endif
 #endif
 
 const char *RIPEMD160_TestOutput[MDTESTCOUNT] = {
@@ -534,6 +570,7 @@ const char *RIPEMD160_TestOutput[MDTESTCOUNT] = {
 };
 
 #ifndef __APPLE__
+#ifndef __linux__
 const char *SKEIN256_TestOutput[MDTESTCOUNT] = {
 	"c8877087da56e072870daa843f176e9453115929094c3a40c463a196c29bf7ba",
 	"7fba44ff1a31d71a0c1f82e6e82fb5e9ac6c92a39c9185b9951fed82d82fe635",
@@ -566,6 +603,7 @@ const char *SKEIN1024_TestOutput[MDTESTCOUNT] = {
 	"cf21a613620e6c119eca31fdfaad449a8e02f95ca256c21d2a105f8e4157048f9fe1e897893ea18b64e0e37cb07d5ac947f27ba544caf7cbc1ad094e675aed77a366270f7eb7f46543bccfa61c526fd628408058ed00ed566ac35a9761d002e629c4fb0d430b2f4ad016fcc49c44d2981c4002da0eecc42144160e2eaea4855a",
 	"e6799b78db54085a2be7ff4c8007f147fa88d326abab30be0560b953396d8802feee9a15419b48a467574e9283be15685ca8a079ee52b27166b64dd70b124b1d4e4f6aca37224c3f2685e67e67baef9f94b905698adc794a09672aba977a61b20966912acdb08c21a2c37001785355dc884751a21f848ab36e590331ff938138"
 };
+#endif
 #endif
 
 static void

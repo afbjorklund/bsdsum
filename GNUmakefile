@@ -4,7 +4,9 @@ UNAME ?= $(shell uname)
 LINKS = rmd160 sha1 sha256 sha512
 ifneq ($(UNAME),Darwin)
 LINKS += sha224 sha384 sha512t256
+ifneq ($(UNAME),Linux)
 LINKS += skein256 skein512 skein1024
+endif
 endif
 PROGS = $(PROG) $(LINKS)
 
