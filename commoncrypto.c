@@ -74,6 +74,8 @@ Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
 		(void)dispatch_semaphore_signal(sema);
 	});
 	os_assert(io);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfor-loop-analysis"
 	for (chunk_offset = 0; eof == false && s_error == 0; chunk_offset += CHUNK_SIZE) {
 		dispatch_io_read(io, chunk_offset, CHUNK_SIZE, queue, ^(bool done, dispatch_data_t data, int error) {
 			if (data != NULL) {
@@ -94,6 +96,7 @@ Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
 		});
 		dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 	}
+#pragma GCC diagnostic pop
 	dispatch_release(io); // it will close on its own
 
 	(void)dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
