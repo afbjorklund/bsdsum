@@ -73,7 +73,11 @@ typedef struct Algorithm_t {
 	DIGEST_Init *Init;
 	DIGEST_Update *Update;
 	DIGEST_End *End;
+#ifndef __linux__
 	char *(*Data)(const unsigned char *, unsigned int, char *);
+#else
+	char *(*Data)(const uint8_t *, size_t, char *);
+#endif
 	char *(*File)(const char *, char *);
 #endif /* __APPLE__ */
 } Algorithm_t;
@@ -238,11 +242,11 @@ MDString(Algorithm_t *alg, const char *string)
 	else
 		printf("%s (\"%s\") = %s\n", alg->name, string, Digest_Data(alg->algorithm, string, len, buf));
 #else /* !__APPLE__ */
-		printf("%s\n", alg->Data(string, len, buf));
+		printf("%s\n", alg->Data((const unsigned char *)string, len, buf));
 	else if (rflag)
-		printf("%s \"%s\"\n", alg->Data(string, len, buf), string);
+		printf("%s \"%s\"\n", alg->Data((const unsigned char *)string, len, buf), string);
 	else
-		printf("%s (\"%s\") = %s\n", alg->name, string, alg->Data(string, len, buf));
+		printf("%s (\"%s\") = %s\n", alg->name, string, alg->Data((const unsigned char *)string, len, buf));
 #endif /* __APPLE__ */
 }
 /*
@@ -367,7 +371,7 @@ MDTestSuite(Algorithm_t *alg)
 #ifdef __APPLE__
 		Digest_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #else
-		(*alg->Data)(MDTestInput[i], strlen(MDTestInput[i]), buffer);
+		(*alg->Data)((const unsigned char *)MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #endif
 		printf("%s (\"%s\") = %s", alg->name, MDTestInput[i], buffer);
 		if (strcmp(buffer, (*alg->TestOutput)[i]) == 0)
