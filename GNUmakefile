@@ -2,6 +2,10 @@
 PROG = md5
 UNAME ?= $(shell uname)
 LINKS = rmd160 sha1 sha256 sha512
+ifneq ($(UNAME),Darwin)
+LINKS += sha224 sha384 sha512t256
+LINKS += skein256 skein512 skein1024
+endif
 PROGS = $(PROG) $(LINKS)
 
 prefix = /usr/local

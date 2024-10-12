@@ -40,9 +40,8 @@ Digest_Data(CCDigestAlg algorithm, const void *data, size_t len, char *buf)
 }
 
 char *
-Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
+Digest_Fd(CCDigestAlg algorithm, int fd, char *buf)
 {
-	int fd;
 	__block CCDigestCtx ctx;
 	dispatch_queue_t queue;
 	dispatch_semaphore_t sema;
@@ -50,12 +49,6 @@ Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
 	__block int s_error = 0;
 	__block bool eof = false;
 	off_t chunk_offset;
-
-	/* dispatch_io_create_with_path requires an absolute path */
-	fd = open(filename, O_RDONLY);
-	if (fd < 0) {
-		return NULL;
-	}
 
 	(void)fcntl(fd, F_NOCACHE, 1);
 
