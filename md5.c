@@ -18,7 +18,9 @@
  */
 
 #include <sys/cdefs.h>
+#ifndef __linux__
 __FBSDID("$FreeBSD$");
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
