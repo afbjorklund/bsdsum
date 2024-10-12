@@ -26,15 +26,22 @@ __FBSDID("$FreeBSD$");
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <err.h>
+#ifndef __APPLE__
 #include <md5.h>
 #include <ripemd.h>
 #include <sha.h>
 #include <sha256.h>
+#endif /* !__APPLE__ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sysexits.h>
+
+#ifdef __APPLE__
+#include "commoncrypto.h"
+#endif /* __APPLE__ */
 
 /*
  * Length of test block, number of test blocks.
@@ -60,26 +67,36 @@ typedef struct Algorithm_t {
 	const char *progname;
 	const char *name;
 	const char *(*TestOutput)[MDTESTCOUNT];
+#ifdef __APPLE__
+	CCDigestAlg algorithm;
+#else /* !__APPLE__ */
 	DIGEST_Init *Init;
 	DIGEST_Update *Update;
 	DIGEST_End *End;
 	char *(*Data)(const unsigned char *, unsigned int, char *);
 	char *(*File)(const char *, char *);
+#endif /* __APPLE__ */
 } Algorithm_t;
 
+#ifndef __APPLE__
 static void MD5_Update(MD5_CTX *, const unsigned char *, size_t);
+#endif /* !__APPLE__ */
 static void MDString(Algorithm_t *, const char *);
 static void MDTimeTrial(Algorithm_t *);
 static void MDTestSuite(Algorithm_t *);
 static void MDFilter(Algorithm_t *, int);
 static void usage(Algorithm_t *);
 
+#ifdef __APPLE__
+typedef CCDigestCtx DIGEST_CTX;
+#else /* !__APPLE__ */
 typedef union {
 	MD5_CTX md5;
 	SHA1_CTX sha1;
 	SHA256_CTX sha256;
 	RIPEMD160_CTX ripemd160;
 } DIGEST_CTX;
+#endif /* __APPLE__ */
 
 /* max(MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH, 
 	SHA256_DIGEST_LENGTH, RIPEMD160_DIGEST_LENGTH)*2+1 */
@@ -88,6 +105,12 @@ typedef union {
 /* algorithm function table */
 
 struct Algorithm_t Algorithm[] = {
+#ifdef __APPLE__
+	{ "md5", "MD5", &MD5TestOutput, kCCDigestMD5, },
+	{ "sha1", "SHA1", &SHA1_TestOutput, kCCDigestSHA1 },
+	{ "sha256", "SHA256", &SHA256_TestOutput, kCCDigestSHA256 },
+	{ "rmd160", "RMD160", &RIPEMD160_TestOutput, kCCDigestRMD160 },
+#else
 	{ "md5", "MD5", &MD5TestOutput, (DIGEST_Init*)&MD5Init,
 		(DIGEST_Update*)&MD5_Update, (DIGEST_End*)&MD5End,
 		&MD5Data, &MD5File },
@@ -100,13 +123,16 @@ struct Algorithm_t Algorithm[] = {
 	{ "rmd160", "RMD160", &RIPEMD160_TestOutput,
 		(DIGEST_Init*)&RIPEMD160_Init, (DIGEST_Update*)&RIPEMD160_Update,
 		(DIGEST_End*)&RIPEMD160_End, &RIPEMD160_Data, &RIPEMD160_File }
+#endif
 };
 
+#ifndef __APPLE__
 static void
 MD5_Update(MD5_CTX *c, const unsigned char *data, size_t len)
 {
 	MD5Update(c, data, len);
 }
+#endif /* !__APPLE__ */
 
 /* Main driver.
 
@@ -123,23 +149,24 @@ main(int argc, char *argv[])
 	int     ch;
 	char   *p;
 	char	buf[HEX_DIGEST_LENGTH];
-	int     failed;
- 	unsigned	digest;
- 	const char*	progname;
- 
- 	if ((progname = strrchr(argv[0], '/')) == NULL)
- 		progname = argv[0];
- 	else
- 		progname++;
- 
- 	for (digest = 0; digest < sizeof(Algorithm)/sizeof(*Algorithm); digest++)
- 		if (strcasecmp(Algorithm[digest].progname, progname) == 0)
- 			break;
- 
- 	if (digest == sizeof(Algorithm)/sizeof(*Algorithm))
- 		digest = 0;
+	int     failed=0;
+	unsigned	digest=0;
+	const char*	progname;
 
-	failed = 0;
+	if(*argv) {
+	  if ((progname = strrchr(argv[0], '/')) == NULL)
+	    progname = argv[0];
+	  else
+	    progname++;
+ 
+	  for (digest = 0; digest < sizeof(Algorithm)/sizeof(*Algorithm); digest++)
+	    if (strcasecmp(Algorithm[digest].progname, progname) == 0)
+	      break;
+
+	  if (digest == sizeof(Algorithm)/sizeof(*Algorithm))
+	    digest = 0;
+	}
+
 	while ((ch = getopt(argc, argv, "pqrs:tx")) != -1)
 		switch (ch) {
 		case 'p':
@@ -169,7 +196,11 @@ main(int argc, char *argv[])
 
 	if (*argv) {
 		do {
+#ifdef __APPLE__
+			p = Digest_File(Algorithm[digest].algorithm, *argv, buf);
+#else
 			p = Algorithm[digest].File(*argv, buf);
+#endif
 			if (!p) {
 				warn("%s", *argv);
 				failed++;
@@ -200,11 +231,19 @@ MDString(Algorithm_t *alg, const char *string)
 	char buf[HEX_DIGEST_LENGTH];
 
 	if (qflag)
+#ifdef __APPLE__
+		printf("%s\n", Digest_Data(alg->algorithm, string, len, buf));
+	else if (rflag)
+		printf("%s \"%s\"\n", Digest_Data(alg->algorithm, string, len, buf), string);
+	else
+		printf("%s (\"%s\") = %s\n", alg->name, string, Digest_Data(alg->algorithm, string, len, buf));
+#else /* !__APPLE__ */
 		printf("%s\n", alg->Data(string, len, buf));
 	else if (rflag)
 		printf("%s \"%s\"\n", alg->Data(string, len, buf), string);
 	else
 		printf("%s (\"%s\") = %s\n", alg->name, string, alg->Data(string, len, buf));
+#endif /* __APPLE__ */
 }
 /*
  * Measures the time to digest TEST_BLOCK_COUNT TEST_BLOCK_LEN-byte blocks.
@@ -233,10 +272,17 @@ MDTimeTrial(Algorithm_t *alg)
 	getrusage(0, &before);
 
 	/* Digest blocks */
+#ifdef __APPLE__
+	CCDigestInit(alg->algorithm, &context);
+	for (i = 0; i < TEST_BLOCK_COUNT; i++)
+		CCDigestUpdate(&context, block, TEST_BLOCK_LEN);
+	p = Digest_End(&context, buf);
+#else
 	alg->Init(&context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
 		alg->Update(&context, block, TEST_BLOCK_LEN);
 	p = alg->End(&context, buf);
+#endif
 
 	/* Stop timer */
 	getrusage(0, &after);
@@ -318,7 +364,11 @@ MDTestSuite(Algorithm_t *alg)
 
 	printf("%s test suite:\n", alg->name);
 	for (i = 0; i < MDTESTCOUNT; i++) {
+#ifdef __APPLE__
+		Digest_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
+#else
 		(*alg->Data)(MDTestInput[i], strlen(MDTestInput[i]), buffer);
+#endif
 		printf("%s (\"%s\") = %s", alg->name, MDTestInput[i], buffer);
 		if (strcmp(buffer, (*alg->TestOutput)[i]) == 0)
 			printf(" - verified correct\n");
@@ -338,13 +388,28 @@ MDFilter(Algorithm_t *alg, int tee)
 	unsigned char buffer[BUFSIZ];
 	char buf[HEX_DIGEST_LENGTH];
 
+#ifdef __APPLE__
+	CCDigestInit(alg->algorithm, &context);
+#else
 	alg->Init(&context);
+#endif
 	while ((len = fread(buffer, 1, BUFSIZ, stdin))) {
 		if (tee && len != fwrite(buffer, 1, len, stdout))
 			err(1, "stdout");
+#ifdef __APPLE__
+		CCDigestUpdate(&context, buffer, len);
+#else
 		alg->Update(&context, buffer, len);
+#endif
 	}
+	if (ferror(stdin)) {
+		errx(EX_IOERR, NULL);
+	}
+#ifdef __APPLE__
+	printf("%s\n", Digest_End(&context, buf));
+#else
 	printf("%s\n", alg->End(&context, buf));
+#endif
 }
 
 static void
