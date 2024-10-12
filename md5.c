@@ -74,7 +74,7 @@ typedef struct Algorithm_t {
 	DIGEST_Update *Update;
 	DIGEST_End *End;
 #ifndef __linux__
-	char *(*Data)(const unsigned char *, unsigned int, char *);
+	char *(*Data)(const void *, unsigned int, char *);
 #else
 	char *(*Data)(const uint8_t *, size_t, char *);
 #endif
@@ -102,7 +102,7 @@ typedef union {
 } DIGEST_CTX;
 #endif /* __APPLE__ */
 
-/* max(MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH, 
+/* max(MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH,
 	SHA256_DIGEST_LENGTH, RIPEMD160_DIGEST_LENGTH)*2+1 */
 #define HEX_DIGEST_LENGTH 65
 
@@ -214,7 +214,8 @@ main(int argc, char *argv[])
 				else if (rflag)
 					printf("%s %s\n", p, *argv);
 				else
-					printf("%s (%s) = %s\n", Algorithm[digest].name, *argv, p);
+					printf("%s (%s) = %s\n",
+					    Algorithm[digest].name, *argv, p);
 			}
 		} while (*++argv);
 	} else if (!sflag && (optind == 1 || qflag || rflag))
@@ -222,7 +223,7 @@ main(int argc, char *argv[])
 
 	if (failed != 0)
 		return (1);
- 
+
 	return (0);
 }
 /*
@@ -261,10 +262,9 @@ MDTimeTrial(Algorithm_t *alg)
 	float seconds;
 	unsigned char block[TEST_BLOCK_LEN];
 	unsigned int i;
-	char   *p, buf[HEX_DIGEST_LENGTH];
+	char *p, buf[HEX_DIGEST_LENGTH];
 
-	printf
-	    ("%s time trial. Digesting %d %d-byte blocks ...",
+	printf("%s time trial. Digesting %d %d-byte blocks ...",
 	    alg->name, TEST_BLOCK_COUNT, TEST_BLOCK_LEN);
 	fflush(stdout);
 
@@ -273,7 +273,7 @@ MDTimeTrial(Algorithm_t *alg)
 		block[i] = (unsigned char) (i & 0xff);
 
 	/* Start timer */
-	getrusage(0, &before);
+	getrusage(RUSAGE_SELF, &before);
 
 	/* Digest blocks */
 #ifdef __APPLE__
@@ -289,15 +289,14 @@ MDTimeTrial(Algorithm_t *alg)
 #endif
 
 	/* Stop timer */
-	getrusage(0, &after);
+	getrusage(RUSAGE_SELF, &after);
 	timersub(&after.ru_utime, &before.ru_utime, &total);
 	seconds = total.tv_sec + (float) total.tv_usec / 1000000;
 
 	printf(" done\n");
 	printf("Digest = %s", p);
 	printf("\nTime = %f seconds\n", seconds);
-	printf
-	    ("Speed = %f bytes/second\n",
+	printf("Speed = %f bytes/second\n",
 	    (float) TEST_BLOCK_LEN * (float) TEST_BLOCK_COUNT / seconds);
 }
 /*
@@ -305,7 +304,7 @@ MDTimeTrial(Algorithm_t *alg)
  */
 
 const char *MDTestInput[MDTESTCOUNT] = {
-	"", 
+	"",
 	"a",
 	"abc",
 	"message digest",
