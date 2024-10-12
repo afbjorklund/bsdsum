@@ -1,5 +1,5 @@
-#include <CommonCrypto/CommonDigest.h>
-#include <CommonCrypto/CommonDigestSPI.h>
+#include "CommonCrypto/CommonDigest.h"
+#include "CommonCrypto/CommonDigestSPI.h"
 
 char *Digest_End(CCDigestRef, char *);
 

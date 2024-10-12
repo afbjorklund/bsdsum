@@ -1,5 +1,6 @@
 
 PROG = md5
+UNAME ?= $(shell uname)
 LINKS = rmd160 sha1 sha256
 PROGS = $(PROG) $(LINKS)
 
@@ -11,10 +12,16 @@ CFLAGS ?= -O2 -Wall
 
 LN_S = ln -sf
 
+ifneq ($(UNAME),Darwin)
 LIBS += -lmd
+endif
 
 md5: md5.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+ifeq ($(UNAME),Darwin)
+md5: commoncrypto.o
+endif
 
 .PHONY: install
 install: install-bin install-man

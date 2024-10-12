@@ -1,7 +1,9 @@
 /* Generic CommonDigest wrappers to match the semantics of libmd. */
 
 #include <dispatch/dispatch.h>
-#include <os/assumes.h>
+#include <assert.h>
+#define os_assumes_zero
+#define os_assert assert
 #include <errno.h>
 #include <fcntl.h>
 
