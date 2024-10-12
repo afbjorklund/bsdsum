@@ -9,6 +9,8 @@
 
 #include "commoncrypto.h"
 
+#define CHUNK_SIZE (10 * 1024 * 1024)
+
 char *
 Digest_End(CCDigestRef ctx, char *buf)
 {
@@ -46,6 +48,8 @@ Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
 	dispatch_semaphore_t sema;
 	dispatch_io_t io;
 	__block int s_error = 0;
+	__block bool eof = false;
+	off_t chunk_offset;
 
 	/* dispatch_io_create_with_path requires an absolute path */
 	fd = open(filename, O_RDONLY);
@@ -70,18 +74,26 @@ Digest_File(CCDigestAlg algorithm, const char *filename, char *buf)
 		(void)dispatch_semaphore_signal(sema);
 	});
 	os_assert(io);
-	dispatch_io_read(io, 0, SIZE_MAX, queue, ^(__unused bool done, dispatch_data_t data, int error) {
-		if (data != NULL) {
-			(void)dispatch_data_apply(data, ^(__unused dispatch_data_t region, __unused size_t offset, const void *buffer, size_t size) {
-				(void)os_assumes_zero(CCDigestUpdate(&ctx, buffer, size));
-				return (bool)true;
-			});
-		}
+	for (chunk_offset = 0; eof == false && s_error == 0; chunk_offset += CHUNK_SIZE) {
+		dispatch_io_read(io, chunk_offset, CHUNK_SIZE, queue, ^(bool done, dispatch_data_t data, int error) {
+			if (data != NULL) {
+				(void)dispatch_data_apply(data, ^(__unused dispatch_data_t region, __unused size_t offset, const void *buffer, size_t size) {
+					(void)os_assumes_zero(CCDigestUpdate(&ctx, buffer, size));
+					return (bool)true;
+				});
+			}
 
-		if (error != 0) {
-			s_error = error;
-		}
-	});
+			if (error != 0) {
+				s_error = error;
+			}
+
+			if (done) {
+				eof = (data == dispatch_data_empty);
+				dispatch_semaphore_signal(sema);
+			}
+		});
+		dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+	}
 	dispatch_release(io); // it will close on its own
 
 	(void)dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
