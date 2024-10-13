@@ -448,7 +448,8 @@ main(int argc, char *argv[])
 			if ((fd = open(*argv, O_RDONLY)) < 0) {
 				warn("%s", *argv);
 				failed++;
-				rec = rec->next;
+				if (cflag && gnu_emu)
+					rec = rec->next;
 				continue;
 			}
 #endif
