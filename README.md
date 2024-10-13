@@ -26,5 +26,7 @@ https://opensource.apple.com/releases/
 
 | macOS Version | text_cmds (md5)       | CommonCrypto (CommonDigest)   |
 |---------------|-----------------------|-------------------------------|
+| 12.1          | text_cmds-118         | CommonCrypto-60190            |
+| 11.1          | text_cmds-106         | CommonCrypto-60178.40.2       |
 | 10.15         | text_cmds-101.11.1    | CommonCrypto-60165            |
 | 10.10         | text_cmds-88          | CommonCrypto-60061            |
