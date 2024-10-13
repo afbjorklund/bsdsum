@@ -444,7 +444,7 @@ main(int argc, char *argv[])
 
 	if (*argv) {
 		do {
-#ifndef __linux
+#ifndef __linux__
 			if ((fd = open(*argv, O_RDONLY)) < 0) {
 				warn("%s", *argv);
 				failed++;
@@ -480,7 +480,7 @@ main(int argc, char *argv[])
 			p = Algorithm[digest].File(*argv, buf);
 #endif
 #endif
-#ifndef __linux
+#ifndef __linux__
 			(void)close(fd);
 #endif
 			MDOutput(&Algorithm[digest], p, argv);
