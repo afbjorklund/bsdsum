@@ -2,10 +2,13 @@
 PROG = md5
 UNAME ?= $(shell uname)
 LINKS = rmd160 sha1 sha256 sha512
+LINKS += md5sum rmd160sum sha1sum sha256sum sha512sum
 ifneq ($(UNAME),Darwin)
 LINKS += sha224 sha384 sha512t256
+LINKS += sha224sum sha384sum sha512t256sum
 ifneq ($(UNAME),Linux)
 LINKS += skein256 skein512 skein1024
+LINKS += skein256sum skein512sum skein1024sum
 endif
 endif
 PROGS = $(PROG) $(LINKS)
@@ -46,8 +49,13 @@ clean:
 	$(RM) $(PROGS)
 
 .PHONY: test
-test: $(PROGS)
-	for prog in $(PROGS); do ./$$prog -x; done
+test: test-unit test-sh
+
+test-unit: $(PROGS)
+	for prog in $(PROGS); do echo $$prog | grep -q "sum$$" || ./$$prog -x; done
+
+test-sh: $(PROGS)
+	PATH="$(PWD):$$PATH" $(MAKE) -C tests
 
 $(LINKS): $(PROG)
 	$(LN_S) $< $@

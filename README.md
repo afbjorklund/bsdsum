@@ -20,6 +20,22 @@ Note that Linux version is only for checking for portability issues.
 
 Using OpenSSL is much faster, since it has optimized implementations.
 
+## BSD
+
+`sha256`
+
+```
+SHA256 (empty) = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+## GNU
+
+`sha256sum`
+
+```
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  empty
+```
+
 ---
 
 https://opensource.apple.com/releases/
