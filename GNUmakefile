@@ -4,9 +4,11 @@ UNAME ?= $(shell uname)
 LINKS = rmd160 sha1 sha256 sha512
 LINKS += md5sum rmd160sum sha1sum sha256sum sha512sum
 ifneq ($(UNAME),Darwin)
-LINKS += sha224 sha384 sha512t256
-LINKS += sha224sum sha384sum sha512t256sum
+LINKS += sha224 sha384
+LINKS += sha224sum sha384sum
 ifneq ($(UNAME),Linux)
+LINKS += sha512t256
+LINKS += sha512t256sum
 LINKS += skein256 skein512 skein1024
 LINKS += skein256sum skein512sum skein1024sum
 endif
