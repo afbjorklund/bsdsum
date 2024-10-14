@@ -23,15 +23,31 @@ CFLAGS ?= -O2 -Wall
 
 LN_S = ln -sf
 
-ifneq ($(UNAME),Darwin)
+ifeq ($(UNAME),FreeBSD)
+MD = true
+else
+MD ?= false
+endif
+
+ifeq ($(MD),true)
+CFLAGS += -DUSE_MD
 LIBS += -lmd
+else
+ifeq ($(UNAME),Linux)
+LIBS += -lcrypto
+endif
 endif
 
 md5: md5.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
 
+ifeq ($(MD),false)
 ifeq ($(UNAME),Darwin)
 md5: commoncrypto.o
+endif
+ifeq ($(UNAME),Linux)
+md5: libcrypto.o
+endif
 endif
 
 .PHONY: install

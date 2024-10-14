@@ -62,6 +62,7 @@ __FBSDID("$FreeBSD$");
 #define HAVE_SKEIN
 #endif
 #endif /* USE_MD */
+#include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,6 +77,13 @@ __FBSDID("$FreeBSD$");
 #define USE_CC
 #define USE_FD
 #endif /* __APPLE__ */
+
+#ifdef __linux__
+#include "libcrypto.h"
+#define USE_LC
+#define USE_FD
+#endif /* __linux__ */
+#endif /* USE_MD */
 
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
@@ -136,6 +144,9 @@ typedef struct Algorithm_t {
 	char *(*Data)(const uint8_t *, size_t, char *);
 	char *(*File)(const char *, char *);
 #endif
+#else
+	char *(*Data)(const void *, unsigned int, char *);
+	char *(*Fd)(int, char *);
 #endif
 #endif /* USE_CC */
 } Algorithm_t;
@@ -192,6 +203,14 @@ typedef union {
 #define RIPEMD160_Fd RIPEMD160_File
 #endif
 #endif /* USE_MD */
+
+#ifdef USE_LC
+#define MD5Init MD5_Init
+#define MD5Update MD5_Update
+#define MD5End MD5_End
+#define MD5Data MD5_Data
+#define MD5Fd MD5_Fd
+#endif /* USE_LC */
 
 static const struct Algorithm_t Algorithm[] = {
 #ifdef USE_CC
@@ -494,6 +513,9 @@ main(int argc, char *argv[])
 #else
 			p = Algorithm[digest].File(*argv, buf);
 #endif
+#endif
+#ifdef USE_LC
+			p = Algorithm[digest].Fd(fd, buf);
 #endif
 #ifdef USE_DD
 			(void)close(fd);
