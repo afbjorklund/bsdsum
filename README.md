@@ -1,12 +1,16 @@
 # bsdsum
 
+## FreeBSD
+
 This is the FreeBSD "md5" program, which also does other digests...
 
 `src/sbin/md5`
 
-It uses libmd for the digests, the OpenBSD version is also in Linux:
+It uses libmd for the digests, the OpenBSD version is available:
 
 <https://www.hadrons.org/software/libmd/>
+
+## Darwin
 
 It is available on macOS (`/sbin`), but only `md5` has been linked.
 
@@ -16,11 +20,31 @@ There it uses CommonCrypto, which is a part of `libSystem.B.dylib`
 
 <https://opensource.apple.com/source/CommonCrypto/>
 
-Note that Linux version is only for checking for portability issues.
+## Linux
 
-Using OpenSSL is much faster, since it has optimized implementations.
+You can also build this for Linux, where it uses openssl libcrypto.
 
-## BSD
+<https://www.openssl.org/>
+
+By setting `MD=true` you can use libmd for checking portability issues.
+
+## Algorithms
+
+- **md5**
+- **rmd160**
+- **sha1**
+- sha224
+- **sha256**
+- sha384
+- **sha512**
+- sha512t256
+- skein256
+- skein512
+- skein1024
+
+## Formats
+
+### BSD
 
 `sha256`
 
@@ -28,7 +52,7 @@ Using OpenSSL is much faster, since it has optimized implementations.
 SHA256 (empty) = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ```
 
-## GNU
+### GNU
 
 `sha256sum`
 
