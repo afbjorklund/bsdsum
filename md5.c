@@ -561,7 +561,8 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 	bool checkfailed = false;
 
 	if (p == NULL) {
-		warn("%s", *argv);
+		if (argv != NULL)
+			warn("%s", *argv);
 		failed++;
 	} else {
 		/*
