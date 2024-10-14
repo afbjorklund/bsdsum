@@ -28,6 +28,8 @@ You can also build this for Linux, where it uses openssl libcrypto.
 
 By setting `MD=true` you can use libmd for checking portability issues.
 
+It is the default on FreeBSD, but optional on macOS and GNU/Linux.
+
 ## Algorithms
 
 - **md5**
