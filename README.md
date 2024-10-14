@@ -39,6 +39,7 @@ It is the default on FreeBSD, but optional on macOS and GNU/Linux.
 - **sha256**
 - sha384
 - **sha512**
+- sha512t224
 - sha512t256
 - skein256
 - skein512

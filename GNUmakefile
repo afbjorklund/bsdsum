@@ -7,8 +7,8 @@ ifneq ($(UNAME),Darwin)
 LINKS += sha224 sha384
 LINKS += sha224sum sha384sum
 ifneq ($(UNAME),Linux)
-LINKS += sha512t256
-LINKS += sha512t256sum
+LINKS += sha512t224 sha512t256
+LINKS += sha512t224sum  sha512t256sum
 LINKS += skein256 skein512 skein1024
 LINKS += skein256sum skein512sum skein1024sum
 endif
