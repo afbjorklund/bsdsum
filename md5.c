@@ -22,40 +22,46 @@
 __FBSDID("$FreeBSD$");
 #endif
 
+#ifdef __FreeBSD__
+#define USE_MD
+#define USE_FD
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <err.h>
 #include <fcntl.h>
-#ifndef __APPLE__
+#ifdef USE_MD
 #include <md5.h>
 #include <ripemd.h>
 #include <sha.h>
-#ifndef __linux__
+#ifdef __FreeBSD__
 #include <sha224.h>
 #define HAVE_SHA224
 #else
 #include "sha224.h"
 #endif
 #include <sha256.h>
-#ifndef __linux__
+#ifdef __FreeBSD__
 #include <sha384.h>
 #define HAVE_SHA384
 #else
 #include "sha384.h"
 #endif
 #include <sha512.h>
-#ifndef __linux__
+#ifdef __FreeBSD__
 #include <sha512t.h>
 #define HAVE_SHA512_256
 #else
 #include "sha512t.h"
 #endif
-#ifndef __linux__
+#ifdef __FreeBSD__
 #include <skein.h>
+#define HAVE_SKEIN
 #endif
-#endif /* !__APPLE__ */
+#endif /* USE_MD */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,8 +70,11 @@ __FBSDID("$FreeBSD$");
 #include <unistd.h>
 #include <sysexits.h>
 
+#ifndef USE_MD
 #ifdef __APPLE__
 #include "commoncrypto.h"
+#define USE_CC
+#define USE_FD
 #endif /* __APPLE__ */
 
 #ifdef HAVE_CAPSICUM
@@ -103,7 +112,7 @@ extern const char *SHA384_TestOutput[MDTESTCOUNT];
 extern const char *SHA512_TestOutput[MDTESTCOUNT];
 extern const char *SHA512t256_TestOutput[MDTESTCOUNT];
 extern const char *RIPEMD160_TestOutput[MDTESTCOUNT];
-#ifndef __linux__
+#ifdef HAVE_SKEIN
 extern const char *SKEIN256_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN512_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN1024_TestOutput[MDTESTCOUNT];
@@ -113,34 +122,36 @@ typedef struct Algorithm_t {
 	const char *progname;
 	const char *name;
 	const char *(*TestOutput)[MDTESTCOUNT];
-#ifdef __APPLE__
+#ifdef USE_CC
 	CCDigestAlg algorithm;
-#else /* !__APPLE__ */
+#else
 	DIGEST_Init *Init;
 	DIGEST_Update *Update;
 	DIGEST_End *End;
-#ifndef __linux__
+#ifdef USE_MD
+#ifdef __FreeBSD__
 	char *(*Data)(const void *, unsigned int, char *);
 	char *(*Fd)(int, char *);
 #else
 	char *(*Data)(const uint8_t *, size_t, char *);
 	char *(*File)(const char *, char *);
 #endif
-#endif /* __APPLE__ */
+#endif
+#endif /* USE_CC */
 } Algorithm_t;
 
-#ifndef __APPLE__
+#ifdef USE_MD
 static void MD5_Update(MD5_CTX *, const unsigned char *, size_t);
-#endif /* !__APPLE__ */
+#endif /* USE_MD */
 static void MDOutput(const Algorithm_t *, char *, char **);
 static void MDTimeTrial(const Algorithm_t *);
 static void MDTestSuite(const Algorithm_t *);
 static char *MDFilter(const Algorithm_t *, char*, int);
 static void usage(const Algorithm_t *);
 
-#ifdef __APPLE__
+#ifdef USE_CC
 typedef CCDigestCtx DIGEST_CTX;
-#else /* !__APPLE__ */
+#else /* !USE_CC */
 typedef union {
 	MD5_CTX md5;
 	SHA1_CTX sha1;
@@ -153,13 +164,13 @@ typedef union {
 #endif
 	SHA512_CTX sha512;
 	RIPEMD160_CTX ripemd160;
-#ifndef __linux__
+#ifdef HAVE_SKEIN
 	SKEIN256_CTX skein256;
 	SKEIN512_CTX skein512;
 	SKEIN1024_CTX skein1024;
 #endif
 } DIGEST_CTX;
-#endif /* __APPLE__ */
+#endif /* USE_CC */
 
 /* max(MD5_DIGEST_LENGTH, SHA_DIGEST_LENGTH,
 	SHA256_DIGEST_LENGTH, SHA512_DIGEST_LENGTH,
@@ -168,7 +179,9 @@ typedef union {
 
 /* algorithm function table */
 
-#ifdef __linux__
+#ifdef USE_MD
+#ifndef __FreeBSD__
+#undef USE_FD
 #define MD5Fd MD5File
 #define SHA1_Fd SHA1_File
 #define SHA224_Fd SHA224_File
@@ -178,9 +191,10 @@ typedef union {
 #define SHA512_256_Fd SHA512_256_File
 #define RIPEMD160_Fd RIPEMD160_File
 #endif
+#endif /* USE_MD */
 
 static const struct Algorithm_t Algorithm[] = {
-#ifdef __APPLE__
+#ifdef USE_CC
 	{ "md5", "MD5", &MD5TestOutput, kCCDigestMD5, },
 	{ "sha1", "SHA1", &SHA1_TestOutput, kCCDigestSHA1 },
 	{ "sha256", "SHA256", &SHA256_TestOutput, kCCDigestSHA256 },
@@ -217,7 +231,7 @@ static const struct Algorithm_t Algorithm[] = {
 	{ "rmd160", "RMD160", &RIPEMD160_TestOutput,
 		(DIGEST_Init*)&RIPEMD160_Init, (DIGEST_Update*)&RIPEMD160_Update,
 		(DIGEST_End*)&RIPEMD160_End, &RIPEMD160_Data, &RIPEMD160_Fd },
-#ifndef __linux__
+#ifdef HAVE_SKEIN
 	{ "skein256", "Skein256", &SKEIN256_TestOutput,
 		(DIGEST_Init*)&SKEIN256_Init, (DIGEST_Update*)&SKEIN256_Update,
 		(DIGEST_End*)&SKEIN256_End, &SKEIN256_Data, &SKEIN256_Fd },
@@ -235,13 +249,13 @@ static unsigned	digest;
 static unsigned	malformed;
 static bool	gnu_emu = false;
 
-#ifndef __APPLE__
+#ifdef USE_MD
 static void
 MD5_Update(MD5_CTX *c, const unsigned char *data, size_t len)
 {
 	MD5Update(c, data, len);
 }
-#endif /* !__APPLE__ */
+#endif /* USE_MD */
 
 struct chksumrec {
 	char	*filename;
@@ -336,7 +350,7 @@ main(int argc, char *argv[])
 	cap_rights_t	rights;
 #endif
 	int     ch;
-#ifndef __linux__
+#ifdef USE_FD
 	int	fd;
 #endif
 	char   *p, *string;
@@ -444,7 +458,7 @@ main(int argc, char *argv[])
 
 	if (*argv) {
 		do {
-#ifndef __linux__
+#ifdef USE_FD
 			if ((fd = open(*argv, O_RDONLY)) < 0) {
 				warn("%s", *argv);
 				failed++;
@@ -471,16 +485,17 @@ main(int argc, char *argv[])
 				checkAgainst = rec->chksum;
 				rec = rec->next;
 			}
-#ifdef __APPLE__
+#ifdef USE_CC
 			p = Digest_Fd(Algorithm[digest].algorithm, fd, buf);
-#else
-#ifndef __linux__
+#endif
+#ifdef USE_MD
+#ifdef __FreeBSD__
 			p = Algorithm[digest].Fd(fd, buf);
 #else
 			p = Algorithm[digest].File(*argv, buf);
 #endif
 #endif
-#ifndef __linux__
+#ifdef USE_DD
 			(void)close(fd);
 #endif
 			MDOutput(&Algorithm[digest], p, argv);
@@ -494,7 +509,7 @@ main(int argc, char *argv[])
 		MDOutput(&Algorithm[digest], p, NULL);
 	} else if (sflag) {
 		len = strlen(string);
-#ifdef __APPLE__
+#ifdef USE_CC
 		p = Digest_Data(Algorithm[digest].algorithm, string, len, buf);
 #else
 		p = Algorithm[digest].Data((const unsigned char *)string, len, buf);
@@ -586,7 +601,7 @@ MDTimeTrial(const Algorithm_t *alg)
 	getrusage(RUSAGE_SELF, &before);
 
 	/* Digest blocks */
-#ifdef __APPLE__
+#ifdef USE_CC
 	CCDigestInit(alg->algorithm, &context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
 		CCDigestUpdate(&context, block, TEST_BLOCK_LEN);
@@ -647,7 +662,6 @@ const char *SHA1_TestOutput[MDTESTCOUNT] = {
 	"18eca4333979c4181199b7b4fab8786d16cf2846"
 };
 
-#ifndef __APPLE__
 #ifdef HAVE_SHA224
 const char *SHA224_TestOutput[MDTESTCOUNT] = {
 	"d14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f",
@@ -659,7 +673,6 @@ const char *SHA224_TestOutput[MDTESTCOUNT] = {
 	"b50aecbe4e9bb0b57bc5f3ae760a8e01db24f203fb3cdcd13148046e",
 	"5ae55f3779c8a1204210d7ed7689f661fbe140f96f272ab79e19d470"
 };
-#endif
 #endif
 
 const char *SHA256_TestOutput[MDTESTCOUNT] = {
@@ -673,7 +686,6 @@ const char *SHA256_TestOutput[MDTESTCOUNT] = {
 	"e6eae09f10ad4122a0e2a4075761d185a272ebd9f5aa489e998ff2f09cbfdd9f"
 };
 
-#ifndef __APPLE__
 #ifdef HAVE_SHA384
 const char *SHA384_TestOutput[MDTESTCOUNT] = {
 	"38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
@@ -685,7 +697,6 @@ const char *SHA384_TestOutput[MDTESTCOUNT] = {
 	"b12932b0627d1c060942f5447764155655bd4da0c9afa6dd9b9ef53129af1b8fb0195996d2de9ca0df9d821ffee67026",
 	"99428d401bf4abcd4ee0695248c9858b7503853acfae21a9cffa7855f46d1395ef38596fcd06d5a8c32d41a839cc5dfb"
 };
-#endif
 #endif
 
 const char *SHA512_TestOutput[MDTESTCOUNT] = {
@@ -699,7 +710,6 @@ const char *SHA512_TestOutput[MDTESTCOUNT] = {
 	"e8a835195e039708b13d9131e025f4441dbdc521ce625f245a436dcd762f54bf5cb298d96235e6c6a304e087ec8189b9512cbdf6427737ea82793460c367b9c3"
 };
 
-#ifndef __APPLE__
 #ifdef HAVE_SHA512_256
 const char *SHA512t256_TestOutput[MDTESTCOUNT] = {
 	"c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a",
@@ -711,7 +721,6 @@ const char *SHA512t256_TestOutput[MDTESTCOUNT] = {
 	"2c9fdbc0c90bdd87612ee8455474f9044850241dc105b1e8b94b8ddf5fac9148",
 	"dd095fc859b336c30a52548b3dc59fcc0d1be8616ebcf3368fad23107db2d736"
 };
-#endif
 #endif
 
 const char *RIPEMD160_TestOutput[MDTESTCOUNT] = {
@@ -725,8 +734,7 @@ const char *RIPEMD160_TestOutput[MDTESTCOUNT] = {
 	"5feb69c6bf7c29d95715ad55f57d8ac5b2b7dd32"
 };
 
-#ifndef __APPLE__
-#ifndef __linux__
+#ifdef HAVE_SKEIN
 const char *SKEIN256_TestOutput[MDTESTCOUNT] = {
 	"c8877087da56e072870daa843f176e9453115929094c3a40c463a196c29bf7ba",
 	"7fba44ff1a31d71a0c1f82e6e82fb5e9ac6c92a39c9185b9951fed82d82fe635",
@@ -760,7 +768,6 @@ const char *SKEIN1024_TestOutput[MDTESTCOUNT] = {
 	"e6799b78db54085a2be7ff4c8007f147fa88d326abab30be0560b953396d8802feee9a15419b48a467574e9283be15685ca8a079ee52b27166b64dd70b124b1d4e4f6aca37224c3f2685e67e67baef9f94b905698adc794a09672aba977a61b20966912acdb08c21a2c37001785355dc884751a21f848ab36e590331ff938138"
 };
 #endif
-#endif
 
 static void
 MDTestSuite(const Algorithm_t *alg)
@@ -770,7 +777,7 @@ MDTestSuite(const Algorithm_t *alg)
 
 	printf("%s test suite:\n", alg->name);
 	for (i = 0; i < MDTESTCOUNT; i++) {
-#ifdef __APPLE__
+#ifdef USE_CC
 		Digest_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #else
 		(*alg->Data)((const unsigned char *)MDTestInput[i], strlen(MDTestInput[i]), buffer);
@@ -796,7 +803,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 	unsigned char buffer[BUFSIZ];
 	char *p;
 
-#ifdef __APPLE__
+#ifdef USE_CC
 	CCDigestInit(alg->algorithm, &context);
 #else
 	alg->Init(&context);
@@ -804,7 +811,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 	while ((len = fread(buffer, 1, BUFSIZ, stdin))) {
 		if (tee && len != fwrite(buffer, 1, len, stdout))
 			err(1, "stdout");
-#ifdef __APPLE__
+#ifdef USE_CC
 		CCDigestUpdate(&context, buffer, len);
 #else
 		alg->Update(&context, buffer, len);
@@ -813,7 +820,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 	if (ferror(stdin)) {
 		errx(EX_IOERR, NULL);
 	}
-#ifdef __APPLE__
+#ifdef USE_CC
 	p = Digest_End(&context, buf);
 #else
 	p = alg->End(&context, buf);
