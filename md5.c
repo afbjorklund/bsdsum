@@ -113,6 +113,7 @@ __FBSDID("$FreeBSD$");
 
 static int bflag;
 static int cflag;
+static int fflag;
 static int iflag;
 static int pflag;
 static int qflag;
@@ -664,7 +665,7 @@ main(int argc, char *argv[])
 	checkAgainst = NULL;
 	checksFailed = 0;
 	skip = 0;
-	while ((ch = getopt(argc, argv, "bc:ipqrs:tx")) != -1)
+	while ((ch = getopt(argc, argv, "bc:fipqrs:tx")) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = 1;
@@ -675,6 +676,9 @@ main(int argc, char *argv[])
 				numrecs = gnu_check(optarg);
 			else
 				checkAgainst = optarg;
+			break;
+		case 'f':
+			fflag = 1;
 			break;
 		case 'i':
 			iflag = 1;
@@ -839,7 +843,10 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 			if (!qflag || checkfailed)
 				printf("%s: %s\n", *argv, checkfailed ? "FAILED" : "OK");
 		} else if (qflag || argv == NULL) {
-			printf("%s\n", p);
+			if (fflag)
+				printf("%s:%s\n", alg->progname, p);
+			else
+				printf("%s\n", p);
 			if (cflag)
 				checkfailed = strcasecmp(checkAgainst, p) != 0;
 		} else {
