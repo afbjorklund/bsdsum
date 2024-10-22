@@ -113,8 +113,9 @@ __FBSDID("$FreeBSD$");
 
 static int bflag;
 static int cflag;
-static int fflag;
 static int iflag;
+static int fflag;
+static int mflag;
 static int pflag;
 static int qflag;
 static int rflag;
@@ -665,7 +666,7 @@ main(int argc, char *argv[])
 	checkAgainst = NULL;
 	checksFailed = 0;
 	skip = 0;
-	while ((ch = getopt(argc, argv, "bc:fipqrs:tx")) != -1)
+	while ((ch = getopt(argc, argv, "bc:fimpqrs:tx")) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = 1;
@@ -682,6 +683,9 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			iflag = 1;
+			break;
+		case 'm':
+			mflag = 1;
 			break;
 		case 'p':
 			pflag = 1;
@@ -818,6 +822,65 @@ main(int argc, char *argv[])
 	return (0);
 }
 
+static int decode_hex(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	else if (c >= 'a' && c <= 'f')
+		return 10 + c - 'a';
+	return -1;
+}
+
+static void print_multiformat(const char *f, char *p)
+{
+	unsigned int i;
+	unsigned char c;
+	char code[3];
+	unsigned int len;
+
+	printf("%c", '\0'); /* none */
+
+	/* type-length-value (TLV) */
+	if (strcmp(f, "md5") == 0) {
+		sprintf(code, "%c", 0xd5);
+		len = 128 / 8;
+	} else if (strcmp(f, "sha1") == 0) {
+		sprintf(code, "%c", 0x11);
+		len = 160 / 8;
+#ifdef HAVE_SHA224
+	} else if (strcmp(f, "sha224") == 0) {
+		sprintf(code, "%c%c", 0x93, 0x20); /* varint 0x1013 */
+		len = 224 / 8;
+#endif
+	} else if (strcmp(f, "sha256") == 0) {
+		sprintf(code, "%c", 0x12);
+		len = 256 / 8;
+#ifdef HAVE_SHA384
+	} else if (strcmp(f, "sha384") == 0) {
+		sprintf(code, "%c", 0x20);
+		len = 384 / 8;
+#endif
+	} else if (strcmp(f, "sha512") == 0) {
+		sprintf(code, "%c", 0x13);
+		len = 512 / 8;
+	} else if (strcmp(f, "rmd160") == 0) {
+		sprintf(code, "%c%c", 0xd3, 0x20); /* varint 0x1053 */
+		len = 160/ 8;
+	} else {
+		return;
+	}
+	if (len < 0x80) {
+		printf("%c", len); /* varint bytes */
+	} else {
+		return;
+	}
+	for (i = 0; i < len * 2; i += 2) {
+		/* convert hexadecimal to binary */
+		c = decode_hex(p[i]) << 4 | decode_hex(p[i+1]);
+		printf("%c", c);
+	}
+}
+
 /*
  * Common output handling
  */
@@ -845,6 +908,8 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 		} else if (qflag || argv == NULL) {
 			if (fflag)
 				printf("%s:%s\n", alg->progname, p);
+			else if (mflag)
+				print_multiformat(alg->progname, p);
 			else
 				printf("%s\n", p);
 			if (cflag)
@@ -858,6 +923,8 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 						printf("%s  %s", p, *argv);
 				else
 					printf("%s %s", p, *argv);
+			else if (mflag)
+				print_multiformat(alg->progname, p);
 			else
 				printf("%s (%s) = %s", alg->name, *argv, p);
 			if (checkAgainst) {
