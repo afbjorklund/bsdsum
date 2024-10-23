@@ -99,6 +99,9 @@ __FBSDID("$FreeBSD$");
 #define HAVE_BLAKE3
 #endif
 
+#include "base32.h"
+#include "base58.h"
+
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
 #include <capsicum_helpers.h>
@@ -124,6 +127,7 @@ static int skip;
 static char* checkAgainst;
 static int checksFailed;
 static int checked;
+static char *encoding;
 static int failed;
 
 typedef void (DIGEST_Init)(void *);
@@ -662,11 +666,12 @@ main(int argc, char *argv[])
 	}
 
 	checked = 0;
+	encoding = NULL;
 	failed = 0;
 	checkAgainst = NULL;
 	checksFailed = 0;
 	skip = 0;
-	while ((ch = getopt(argc, argv, "bc:fimpqrs:tx")) != -1)
+	while ((ch = getopt(argc, argv, "bc:e:fimpqrs:tx")) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = 1;
@@ -677,6 +682,9 @@ main(int argc, char *argv[])
 				numrecs = gnu_check(optarg);
 			else
 				checkAgainst = optarg;
+			break;
+		case 'e':
+			encoding = optarg;
 			break;
 		case 'f':
 			fflag = 1;
@@ -831,14 +839,42 @@ static int decode_hex(char c)
 	return -1;
 }
 
+static const char base32_lower[33] = "abcdefghijklmnopqrstuvwxyz234567";
+static const char base32_hex[33] =   "0123456789abcdefghijklmnopqrstuv";
+
 static void print_multiformat(const char *f, char *p)
 {
 	unsigned int i;
 	unsigned char c;
+	unsigned int base;
 	char code[3];
 	unsigned int len;
+	unsigned char *buf;
+	char *s;
+	char *out;
+	size_t outlen;
 
-	printf("%c", '\0'); /* none */
+	/* multibase encoding */
+	if (encoding == NULL || strcmp(encoding, "none") == 0) {
+		printf("%c", '\0'); /* none */
+		base = 0;
+	} else if (strcmp(encoding, "base16") == 0) {
+		printf("%c", 'f'); /* base16, lower case */
+		base = 16;
+	} else if (strcmp(encoding, "base32") == 0) {
+		printf("%c", 'b'); /* base32, lower case - no padding */
+		base32_map = base32_lower;
+		base = 32;
+	} else if (strcmp(encoding, "base32hex") == 0) {
+		printf("%c", 'v'); /* base32hex, lower case - no padding */
+		base32_map = base32_hex;
+		base = 32;
+	} else if (strcmp(encoding, "base58btc") == 0) {
+		printf("%c", 'z'); /* base58btc, mixed case */
+		base = 58;
+	} else {
+		return;
+	}
 
 	/* type-length-value (TLV) */
 	if (strcmp(f, "md5") == 0) {
@@ -869,16 +905,43 @@ static void print_multiformat(const char *f, char *p)
 	} else {
 		return;
 	}
-	if (len < 0x80) {
-		printf("%c", len); /* varint bytes */
-	} else {
+
+	if (base == 16) {
+		for (i = 0; i < strlen(code); i++) {
+			printf("%02x", code[i]);
+		}
+		printf("%02x", (char)len);
+		printf("%s", p);
 		return;
 	}
+
+	outlen = (strlen(code) + len) * 2;
+	out = malloc(outlen);
+	buf = malloc(strlen(code) + 1 + len + 1);
+	s = (char *)buf;
+	s += sprintf(s, "%s", code); /* varint code */
+	s += sprintf(s, "%c", len); /* varint bytes */
 	for (i = 0; i < len * 2; i += 2) {
 		/* convert hexadecimal to binary */
 		c = decode_hex(p[i]) << 4 | decode_hex(p[i+1]);
-		printf("%c", c);
+		s += sprintf(s, "%c", c);
 	}
+	*s = '\0';
+	switch (base) {
+	case 0:
+		printf("%s", buf);
+		break;
+	case 32:
+		base32_encode(buf, strlen(code) + 1 + len, out);
+		printf("%s", out);
+		break;
+	case 58:
+		b58enc(out, &outlen, buf, strlen(code) + 1 + len);
+		printf("%s", out);
+		break;
+	}
+	free(out);
+	free(buf);
 }
 
 /*

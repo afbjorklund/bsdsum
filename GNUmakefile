@@ -89,6 +89,9 @@ md5: libb3/b3.o
 endif
 endif
 
+md5: base32.o
+md5: base58.o
+
 .PHONY: install
 install: install-bin install-man
 
