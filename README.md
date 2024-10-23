@@ -63,6 +63,36 @@ SHA256 (empty) = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b85
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  empty
 ```
 
+## Multiformats
+
+See <https://multiformats.io>
+
+### Multihash
+
+The hash includes the function and length:
+
+`<hash-func-type><digest-length><digest-value>`
+
+### Multibase
+
+The multihash is encoding with multibase:
+
+`<base-encoding-code-point><base-encoded-data>`
+
+### Example
+
+Here is the sha256 above, using multiformats:
+
+| Encoding    | Length  | String         							   |
+|-------------|---------|--------------------------------------------------------------------------|
+| none        | 35      | (binary data, starting with NUL byte - otherwise same hexdump as base16) |
+| base16      | 69      | `f1220e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`  |
+| base32      | 56      | `bciqohmgeikmpyhautl57jsezn64sij5oihsgjg4tjssjlgi3pbjlqvi`               |
+| base32hex   | 56      | `v28ge7c648acfo70kjbtv9i4pdusi89te87i696sj9ii9b68rf19bgl8`               |
+| base58utc   | 47      | `zQmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n`                        |
+
+You can use [Multiformat inspector](https://libertydsnp.github.io/multiformat-inspector/) to inspect.
+
 ---
 
 https://opensource.apple.com/releases/
