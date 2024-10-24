@@ -908,7 +908,7 @@ static void print_multiformat(const char *f, char *p)
 
 	if (base == 16) {
 		for (i = 0; i < strlen(code); i++) {
-			printf("%02x", code[i]);
+			printf("%02x", ((unsigned char *)code)[i]);
 		}
 		printf("%02x", (char)len);
 		printf("%s", p);
