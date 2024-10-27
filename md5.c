@@ -101,6 +101,7 @@ __FBSDID("$FreeBSD$");
 
 static int bflag;
 static int cflag;
+static int iflag;
 static int pflag;
 static int qflag;
 static int rflag;
@@ -423,7 +424,7 @@ main(int argc, char *argv[])
 	checkAgainst = NULL;
 	checksFailed = 0;
 	skip = 0;
-	while ((ch = getopt(argc, argv, "bc:pqrs:tx")) != -1)
+	while ((ch = getopt(argc, argv, "bc:ipqrs:tx")) != -1)
 		switch (ch) {
 		case 'b':
 			bflag = 1;
@@ -434,6 +435,9 @@ main(int argc, char *argv[])
 				numrecs = gnu_check(optarg);
 			else
 				checkAgainst = optarg;
+			break;
+		case 'i':
+			iflag = 1;
 			break;
 		case 'p':
 			pflag = 1;
@@ -487,8 +491,10 @@ main(int argc, char *argv[])
 		do {
 #ifdef USE_FD
 			if ((fd = open(*argv, O_RDONLY)) < 0) {
-				warn("%s", *argv);
-				failed++;
+				if (!iflag) {
+					warn("%s", *argv);
+					failed++;
+				}
 				if (cflag && gnu_emu)
 					rec = rec->next;
 				continue;
@@ -569,9 +575,11 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 	bool checkfailed = false;
 
 	if (p == NULL) {
-		if (argv != NULL)
-			warn("%s", *argv);
-		failed++;
+		if (!iflag) {
+			if (argv != NULL)
+				warn("%s", *argv);
+			failed++;
+		}
 	} else {
 		/*
 		 * If argv is NULL we are reading from stdin, where the output
