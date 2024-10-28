@@ -33,6 +33,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/resource.h>
 
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #ifdef USE_MD
 #include <md5.h>
@@ -491,7 +492,7 @@ main(int argc, char *argv[])
 		do {
 #ifdef USE_FD
 			if ((fd = open(*argv, O_RDONLY)) < 0) {
-				if (!iflag) {
+				if (!iflag || errno != ENOENT) {
 					warn("%s", *argv);
 					failed++;
 				}
@@ -575,7 +576,7 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 	bool checkfailed = false;
 
 	if (p == NULL) {
-		if (!iflag) {
+		if (!iflag || errno != ENOENT) {
 			if (argv != NULL)
 				warn("%s", *argv);
 			failed++;
