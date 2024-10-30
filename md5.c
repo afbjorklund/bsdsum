@@ -110,6 +110,7 @@ static int sflag;
 static int skip;
 static char* checkAgainst;
 static int checksFailed;
+static int checked;
 static int failed;
 
 typedef void (DIGEST_Init)(void *);
@@ -294,6 +295,7 @@ struct chksumrec {
 
 static struct chksumrec *head = NULL;
 static struct chksumrec **next = &head;
+static const char       *file = "NULL";
 
 #define PADDING	7	/* extra padding for "SHA512t256 (...) = ...\n" style */
 #define CHKFILELINELEN	(HEX_DIGEST_LENGTH + MAXPATHLEN + PADDING)
@@ -311,6 +313,7 @@ static int gnu_check(const char *checksumsfile)
 	int	digestnamelen;
 	int	hashstrlen;
 
+	file = checksumsfile;
 	if ((inp = fopen(checksumsfile, "r")) == NULL)
 		err(1, "%s", checksumsfile);
 	digestname = Algorithm[digest].name;
@@ -421,6 +424,7 @@ main(int argc, char *argv[])
  		digest = 0;
 	}
 
+	checked = 0;
 	failed = 0;
 	checkAgainst = NULL;
 	checksFailed = 0;
@@ -500,6 +504,7 @@ main(int argc, char *argv[])
 					rec = rec->next;
 				continue;
 			}
+			checked++;
 #endif
 			/*
 			 * XXX Enter capability mode on the last argv file.
@@ -554,11 +559,15 @@ main(int argc, char *argv[])
 		MDOutput(&Algorithm[digest], p, &string);
 	}
 	if (gnu_emu) {
+		if (cflag && checked == 0)
+			warnx("%s: no file was verified", file);
 		if (malformed > 0)
 			warnx("WARNING: %d lines are improperly formatted", malformed);
 		if (checksFailed > 0)
 			warnx("WARNING: %d computed checksums did NOT match", checksFailed);
 	}
+	if (cflag && checked == 0)
+		return (1);
 	if (failed != 0)
 		return (1);
 	if (checksFailed != 0)
@@ -581,6 +590,7 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 				warn("%s", *argv);
 			failed++;
 		}
+		checked++;
 	} else {
 		/*
 		 * If argv is NULL we are reading from stdin, where the output
@@ -840,6 +850,7 @@ MDTestSuite(const Algorithm_t *alg)
 		printf("%s (\"%s\") = %s", alg->name, MDTestInput[i], buffer);
 		if (strcmp(buffer, (*alg->TestOutput)[i]) == 0) {
 			printf(" - verified correct\n");
+			checked++;
 		} else {
 			printf(" - INCORRECT RESULT!\n");
 			failed++;
