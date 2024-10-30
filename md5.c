@@ -421,7 +421,7 @@ main(int argc, char *argv[])
  			break;
 
  	if (digest == sizeof(Algorithm)/sizeof(*Algorithm))
- 		digest = 0;
+		err(1, "algorithm not found: %.*s", (int)len, progname);
 	}
 
 	checked = 0;
