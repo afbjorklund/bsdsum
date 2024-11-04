@@ -167,7 +167,9 @@ static char *MDFilter(const Algorithm_t *, char*, int);
 static void usage(const Algorithm_t *);
 
 #ifdef USE_CC
-typedef CCDigestCtx DIGEST_CTX;
+typedef union {
+	CCDigestCtx cc;
+} DIGEST_CTX;
 #else /* !USE_CC */
 typedef union {
 	MD5_CTX md5;
@@ -209,6 +211,33 @@ typedef union {
 #define RIPEMD160_Fd RIPEMD160_File
 #endif
 #endif /* USE_MD */
+
+#ifdef USE_CC
+void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
+{
+	CCDigestInit(alg, &ctx->cc);
+}
+
+void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
+{
+	CCDigestUpdate(&ctx->cc, data, length);
+}
+
+char *CC_End(DIGEST_CTX *ctx, char *buf)
+{
+	return Digest_End(&ctx->cc, buf);
+}
+
+char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
+{
+	return Digest_Data(alg, data, len, buf);
+}
+
+char *CC_Fd(CCDigestAlg alg, int fd, char *buf)
+{
+	return Digest_Fd(alg, fd, buf);
+}
+#endif /* USE_CC */
 
 #ifdef USE_LC
 #define MD5Init MD5_Init
@@ -552,7 +581,7 @@ main(int argc, char *argv[])
 	} else if (sflag) {
 		len = strlen(string);
 #ifdef USE_CC
-		p = Digest_Data(Algorithm[digest].algorithm, string, len, buf);
+		p = CC_Data(Algorithm[digest].algorithm, string, len, buf);
 #else
 		p = Algorithm[digest].Data((const unsigned char *)string, len, buf);
 #endif
@@ -654,10 +683,10 @@ MDTimeTrial(const Algorithm_t *alg)
 
 	/* Digest blocks */
 #ifdef USE_CC
-	CCDigestInit(alg->algorithm, &context);
+	CC_Init(alg->algorithm, &context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
-		CCDigestUpdate(&context, block, TEST_BLOCK_LEN);
-	p = Digest_End(&context, buf);
+		CC_Update(&context, block, TEST_BLOCK_LEN);
+	p = CC_End(&context, buf);
 #else
 	alg->Init(&context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
@@ -843,7 +872,7 @@ MDTestSuite(const Algorithm_t *alg)
 	printf("%s test suite:\n", alg->name);
 	for (i = 0; i < MDTESTCOUNT; i++) {
 #ifdef USE_CC
-		Digest_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
+		CC_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #else
 		(*alg->Data)((const unsigned char *)MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #endif
@@ -870,7 +899,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 	char *p;
 
 #ifdef USE_CC
-	CCDigestInit(alg->algorithm, &context);
+	CC_Init(alg->algorithm, &context);
 #else
 	alg->Init(&context);
 #endif
@@ -878,7 +907,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 		if (tee && len != fwrite(buffer, 1, len, stdout))
 			err(1, "stdout");
 #ifdef USE_CC
-		CCDigestUpdate(&context, buffer, len);
+		CC_Update(&context, buffer, len);
 #else
 		alg->Update(&context, buffer, len);
 #endif
@@ -887,7 +916,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 		errx(EX_IOERR, NULL);
 	}
 #ifdef USE_CC
-	p = Digest_End(&context, buf);
+	p = CC_End(&context, buf);
 #else
 	p = alg->End(&context, buf);
 #endif
