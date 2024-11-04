@@ -74,6 +74,9 @@ test: test-unit test-sh
 test-unit: $(PROGS)
 	for prog in $(PROGS); do echo $$prog | grep -q "sum$$" || ./$$prog -x; done
 
+benchmark:
+	for prog in $(PROGS); do echo $$prog | grep -q "sum$$" || ./$$prog -t; done
+
 test-sh: $(PROGS)
 	PATH="$(PWD):$$PATH" $(MAKE) -C tests
 
