@@ -54,11 +54,13 @@ endif
 install: install-bin install-man
 
 install-bin: $(PROG)
-	install -D $< $(DESTDIR)$(prefix)/bin
+	install -d $(DESTDIR)$(prefix)/bin
+	install $< $(DESTDIR)$(prefix)/bin
 	for link in $(LINKS); do $(LN_S) $< $(DESTDIR)$(prefix)/bin/$$link; done
 
 install-man: $(PROG).1
-	install -D $< $(DESTDIR)$(prefix)/share/man/man1
+	install -d $(DESTDIR)$(prefix)/share/man/man1
+	install $< $(DESTDIR)$(prefix)/share/man/man1
 	for link in $(LINKS); do $(LN_S) $< $(DESTDIR)$(prefix)/share/man/man1/$$link.1; done
 
 .PHONY: clean
