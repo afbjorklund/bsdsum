@@ -6,9 +6,11 @@
 .Nm md5 , sha1 , sha224 , sha256 , sha384 ,
 .Nm sha512 , sha512t224 , sha512t256 ,
 .Nm rmd160 , skein256 , skein512 , skein1024 ,
+.Nm blake3 ,
 .Nm md5sum , sha1sum , sha224sum , sha256sum , sha384sum ,
 .Nm sha512sum , sha512t224sum , sha512t256sum ,
-.Nm rmd160sum , skein256sum , skein512sum , skein1024sum
+.Nm rmd160sum , skein256sum , skein512sum , skein1024sum ,
+.Nm blake3sum
 .Nd calculate a message-digest fingerprint (checksum) for a file
 .Sh SYNOPSIS
 .Nm
@@ -27,9 +29,9 @@
 .Sh DESCRIPTION
 The
 .Nm md5 , sha1 , sha224 , sha256 , sha384 , sha512 , sha512t224 , sha512t256 ,
-.Nm rmd160 , skein256 , skein512 ,
+.Nm rmd160 , skein256 , skein512 , skein1024 ,
 and
-.Nm skein1024
+.Nm blake3
 utilities take as input a message of arbitrary length and produce as
 output a
 .Dq fingerprint
@@ -39,8 +41,9 @@ of the input.
 The
 .Nm md5sum , sha1sum , sha224sum , sha256sum , sha384sum , sha512sum ,
 .Nm sha512t224sum , sha512t256sum , rmd160sum , skein256sum , skein512sum ,
+.Nm skein1024sum ,
 and
-.Nm skein1024sum
+.Nm blake3sum
 utilities do the same, but default to the reversed format of
 the
 .Fl r
@@ -48,8 +51,8 @@ flag.
 It is conjectured that it is computationally infeasible to
 produce two messages having the same message digest, or to produce any
 message having a given prespecified target message digest.
-The SHA-224 , SHA-256 , SHA-384 , SHA-512, RIPEMD-160,
-and SKEIN
+The SHA-224 , SHA-256 , SHA-384 , SHA-512, RIPEMD-160, SKEIN,
+and BLAKE3
 algorithms are intended for digital signature applications, where a
 large file must be
 .Dq compressed
@@ -253,6 +256,10 @@ Secure Hash Standard (SHS):
 .Pp
 The RIPEMD-160 page:
 .Pa https://homes.esat.kuleuven.be/~bosselae/ripemd160.html
+.Pp
+BLAKE3 is specified in the
+Community Cryptography Specification Project (C2SP):
+.Pa https://c2sp.org/BLAKE3
 .Sh BUGS
 All of the utilities that end in
 .Sq sum

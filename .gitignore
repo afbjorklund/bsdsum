@@ -18,5 +18,8 @@ sha384sum
 sha512sum
 sha512t256sum
 
+blake3
+blake3sum
+
 tests/algorithms.txt
 tests/*.out

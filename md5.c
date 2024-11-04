@@ -65,6 +65,9 @@ __FBSDID("$FreeBSD$");
 #define HAVE_SKEIN
 #endif
 #endif /* USE_MD */
+#ifdef HAVE_BLAKE3
+#include "blake3.h"
+#endif
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -131,6 +134,9 @@ extern const char *SKEIN256_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN512_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN1024_TestOutput[MDTESTCOUNT];
 #endif
+#ifdef HAVE_BLAKE3
+extern const char *BLAKE3TestOutput[MDTESTCOUNT];
+#endif
 
 typedef struct Algorithm_t {
 	const char *progname;
@@ -160,6 +166,11 @@ typedef struct Algorithm_t {
 #ifdef USE_MD
 static void MD5_Update(MD5_CTX *, const unsigned char *, size_t);
 #endif /* USE_MD */
+#ifndef USE_CC
+#if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
+static char *BLAKE3_Data(const unsigned char *, size_t, char *buf);
+#endif
+#endif /* USE_CC */
 static void MDOutput(const Algorithm_t *, char *, char **);
 static void MDTimeTrial(const Algorithm_t *);
 static void MDTestSuite(const Algorithm_t *);
@@ -169,6 +180,9 @@ static void usage(const Algorithm_t *);
 #ifdef USE_CC
 typedef union {
 	CCDigestCtx cc;
+#ifdef HAVE_BLAKE3
+	BLAKE3_CTX blake3;
+#endif
 } DIGEST_CTX;
 #else /* !USE_CC */
 typedef union {
@@ -187,6 +201,9 @@ typedef union {
 	SKEIN256_CTX skein256;
 	SKEIN512_CTX skein512;
 	SKEIN1024_CTX skein1024;
+#endif
+#ifdef HAVE_BLAKE3
+	BLAKE3_CTX blake3;
 #endif
 } DIGEST_CTX;
 #endif /* USE_CC */
@@ -209,32 +226,69 @@ typedef union {
 #define SHA512_Fd SHA512_File
 #define SHA512_256_Fd SHA512_256_File
 #define RIPEMD160_Fd RIPEMD160_File
+#define BLAKE3Fd BLAKE3File
 #endif
 #endif /* USE_MD */
 
 #ifdef USE_CC
+#define kCCDigestBLAKE3 (kCCDigestMax + 0xb3) /* outside normal enum */
+
+#ifdef HAVE_BLAKE3
+static const uint32_t IV[8] = {0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL,
+                               0xA54FF53AUL, 0x510E527FUL, 0x9B05688CUL,
+                               0x1F83D9ABUL, 0x5BE0CD19UL};
+static bool IS_IV(uint32_t key[8]) { return memcmp(key, IV, 32) == 0; }
+/* this is a hack in order to separate contexts */
+#define IS_BLAKE3_CTX(ctx) IS_IV(ctx->blake3.key)
+#endif
+
 void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 {
+#ifdef HAVE_BLAKE3
+	if (alg == kCCDigestBLAKE3)
+		BLAKE3Init(&ctx->blake3);
+	else
+#endif
 	CCDigestInit(alg, &ctx->cc);
 }
 
 void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 {
+#ifdef HAVE_BLAKE3
+	if (IS_BLAKE3_CTX(ctx))
+		BLAKE3Update(&ctx->blake3, data, length);
+	else
+#endif
 	CCDigestUpdate(&ctx->cc, data, length);
 }
 
 char *CC_End(DIGEST_CTX *ctx, char *buf)
 {
+#ifdef HAVE_BLAKE3
+	if (IS_BLAKE3_CTX(ctx))
+		return BLAKE3End(&ctx->blake3, buf);
+	else
+#endif
 	return Digest_End(&ctx->cc, buf);
 }
 
 char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
 {
+#ifdef HAVE_BLAKE3
+	if (alg == kCCDigestBLAKE3)
+		return BLAKE3Data(data, len, buf);
+	else
+#endif
 	return Digest_Data(alg, data, len, buf);
 }
 
 char *CC_Fd(CCDigestAlg alg, int fd, char *buf)
 {
+#ifdef HAVE_BLAKE3
+	if (alg == kCCDigestBLAKE3)
+		return BLAKE3Fd(fd, buf);
+	else
+#endif
 	return Digest_Fd(alg, fd, buf);
 }
 #endif /* USE_CC */
@@ -254,6 +308,9 @@ static const struct Algorithm_t Algorithm[] = {
 	{ "sha256", "SHA256", &SHA256_TestOutput, kCCDigestSHA256 },
 	{ "sha512", "SHA512", &SHA512_TestOutput, kCCDigestSHA512 },
 	{ "rmd160", "RMD160", &RIPEMD160_TestOutput, kCCDigestRMD160 },
+#ifdef HAVE_BLAKE3
+	{ "blake3", "BLAKE3", &BLAKE3TestOutput, kCCDigestBLAKE3 },
+#endif
 #else
 	{ "md5", "MD5", &MD5TestOutput, (DIGEST_Init*)&MD5Init,
 		(DIGEST_Update*)&MD5_Update, (DIGEST_End*)&MD5End,
@@ -301,6 +358,15 @@ static const struct Algorithm_t Algorithm[] = {
 		(DIGEST_Init*)&SKEIN1024_Init, (DIGEST_Update*)&SKEIN1024_Update,
 		(DIGEST_End*)&SKEIN1024_End, &SKEIN1024_Data, &SKEIN1024_Fd }
 #endif
+#ifdef HAVE_BLAKE3
+	{ "blake3", "BLAKE3", &BLAKE3TestOutput,
+		(DIGEST_Init*)&BLAKE3Init, (DIGEST_Update*)&BLAKE3Update,
+#if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
+		(DIGEST_End*)&BLAKE3End, &BLAKE3_Data, &BLAKE3Fd }
+#else
+		(DIGEST_End*)&BLAKE3End, &BLAKE3Data, &BLAKE3Fd }
+#endif
+#endif
 #endif
 };
 
@@ -315,6 +381,16 @@ MD5_Update(MD5_CTX *c, const unsigned char *data, size_t len)
 	MD5Update(c, data, len);
 }
 #endif /* USE_MD */
+
+#ifndef USE_CC
+#if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
+static char *
+BLAKE3_Data(const unsigned char *data, size_t len, char *buf)
+{
+	return BLAKE3Data(data, len, buf);
+}
+#endif
+#endif /* USE_CC */
 
 struct chksumrec {
 	char	*filename;
@@ -860,6 +936,18 @@ const char *SKEIN1024_TestOutput[MDTESTCOUNT] = {
 	"cf3889e8a8d11bfd3938055d7d061437962bc5eac8ae83b1b71c94be201b8cf657fdbfc38674997a008c0c903f56a23feb3ae30e012377f1cfa080a9ca7fe8b96138662653fb3335c7d06595bf8baf65e215307532094cfdfa056bd8052ab792a3944a2adaa47b30335b8badb8fe9eb94fe329cdca04e58bbc530f0af709f469",
 	"cf21a613620e6c119eca31fdfaad449a8e02f95ca256c21d2a105f8e4157048f9fe1e897893ea18b64e0e37cb07d5ac947f27ba544caf7cbc1ad094e675aed77a366270f7eb7f46543bccfa61c526fd628408058ed00ed566ac35a9761d002e629c4fb0d430b2f4ad016fcc49c44d2981c4002da0eecc42144160e2eaea4855a",
 	"e6799b78db54085a2be7ff4c8007f147fa88d326abab30be0560b953396d8802feee9a15419b48a467574e9283be15685ca8a079ee52b27166b64dd70b124b1d4e4f6aca37224c3f2685e67e67baef9f94b905698adc794a09672aba977a61b20966912acdb08c21a2c37001785355dc884751a21f848ab36e590331ff938138"
+};
+#endif
+#ifdef HAVE_BLAKE3
+const char *BLAKE3TestOutput[MDTESTCOUNT] = {
+	"af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+	"17762fddd969a453925d65717ac3eea21320b66b54342fde15128d6caf21215f",
+	"6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85",
+	"7bc2a2eeb95ddbf9b7ecf6adcb76b453091c58dc43955e1d9482b1942f08d19b",
+	"2468eec8894acfb4e4df3a51ea916ba115d48268287754290aae8e9e6228e85f",
+	"8bee3200baa9f3a1acd279f049f914f110e730555ff15109bd59cdd73895e239",
+	"f263acf51621980b9c8de5da4a17d314984e05abe4a21cc83a07fe3e1e366dd1",
+	"8261349e333af006917d8a3b889cd13974dd8e018dc2a5de444d2b8d9a24033f"
 };
 #endif
 

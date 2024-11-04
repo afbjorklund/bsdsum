@@ -44,6 +44,15 @@ It is the default on FreeBSD, but optional on macOS and GNU/Linux.
 - skein256
 - skein512
 - skein1024
+- _blake3_
+
+BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
+
+<https://blake3.io>
+
+By setting `B3=true` you can use "libblake3.a" for the BLAKE3 algorithm.
+
+Currently `MD=true` links with "libblake-portable.a" library (SIMD: none).
 
 ## Formats
 
