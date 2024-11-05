@@ -30,7 +30,7 @@ char *JOIN(MDX,_Fd)(int fd, char *buf)
 {
         JOIN(MDX,_CTX) ctx;
         char tmp[CHUNK_SIZE];
-        int n;
+        long n;
 
         JOIN(MDX,_Init)(&ctx);
         while ((n = read(fd, tmp, CHUNK_SIZE)) > 0) {

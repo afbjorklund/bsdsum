@@ -51,11 +51,11 @@ char *BLAKE3Fd(int fd, char *buf)
 {
 	BLAKE3_CTX ctx;
 	uint8_t tmp[CHUNK_SIZE];
-	size_t n;
+	ssize_t n;
 
 	BLAKE3Init(&ctx);
 	while ((n = read(fd, tmp, CHUNK_SIZE)) > 0) {
-		BLAKE3Update(&ctx, tmp, n);
+		BLAKE3Update(&ctx, tmp, (size_t)n);
 	}
 	if (n == -1) {
 		return NULL;

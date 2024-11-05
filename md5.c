@@ -396,18 +396,18 @@ static const char       *file = "NULL";
 #define PADDING	7	/* extra padding for "SHA512t256 (...) = ...\n" style */
 #define CHKFILELINELEN	(HEX_DIGEST_LENGTH + MAXPATHLEN + PADDING)
 
-static int gnu_check(const char *checksumsfile)
+static unsigned int gnu_check(const char *checksumsfile)
 {
 	FILE	*inp;
 	char	linebuf[CHKFILELINELEN];
-	int	linelen;
-	int	lineno;
+	unsigned long	linelen;
+	unsigned int	lineno;
 	char	*filename;
 	char	*hashstr;
 	struct chksumrec	*rec;
 	const char	*digestname;
-	int	digestnamelen;
-	int	hashstrlen;
+	unsigned long	digestnamelen;
+	unsigned long	hashstrlen;
 
 	file = checksumsfile;
 	if ((inp = fopen(checksumsfile, "r")) == NULL)
@@ -421,7 +421,7 @@ static int gnu_check(const char *checksumsfile)
 		if (linelen <= 0)
 			break;
 		if (linebuf[linelen] != '\n')
-			errx(1, "malformed input line %d (len=%d)", lineno, linelen);
+			errx(1, "malformed input line %d (len=%ld)", lineno, linelen);
 		linebuf[linelen] = '\0';
 		filename = linebuf + digestnamelen + 2;
 		hashstr = linebuf + linelen - hashstrlen;
@@ -486,7 +486,7 @@ main(int argc, char *argv[])
 	size_t	len;
 	const char*	progname;
 	struct chksumrec	*rec = NULL;
-	int	numrecs = 0;
+	unsigned int	numrecs = 0;
 
 	if(*argv) {
  	if ((progname = strrchr(argv[0], '/')) == NULL)
@@ -579,7 +579,7 @@ main(int argc, char *argv[])
 		 * Replace argv by an array of filenames from the digest file
 		 */
 		argc = 0;
-		argv = (char**)calloc(sizeof(char *), numrecs + 1);
+		argv = (char**)calloc(numrecs + 1, sizeof(char *));
 		for (rec = head; rec != NULL; rec = rec->next) {
 			argv[argc] = rec->filename;
 			argc++;
@@ -650,7 +650,7 @@ main(int argc, char *argv[])
 #ifdef USE_CC
 		p = CC_Data(Algorithm[digest].algorithm, string, len, buf);
 #else
-		p = Algorithm[digest].Data((const unsigned char *)string, len, buf);
+		p = Algorithm[digest].Data((const unsigned char *)string, (unsigned int)len, buf);
 #endif
 		MDOutput(&Algorithm[digest], p, &string);
 	}
@@ -732,7 +732,7 @@ MDTimeTrial(const Algorithm_t *alg)
 	DIGEST_CTX context;
 	struct rusage before, after;
 	struct timeval total;
-	float seconds;
+	double seconds;
 	unsigned char block[TEST_BLOCK_LEN];
 	unsigned int i;
 	char *p, buf[HEX_DIGEST_LENGTH];
@@ -764,13 +764,13 @@ MDTimeTrial(const Algorithm_t *alg)
 	/* Stop timer */
 	getrusage(RUSAGE_SELF, &after);
 	timersub(&after.ru_utime, &before.ru_utime, &total);
-	seconds = total.tv_sec + (float) total.tv_usec / 1000000;
+	seconds = (double) total.tv_sec + (double) total.tv_usec / 1000000;
 
 	printf(" done\n");
 	printf("Digest = %s", p);
 	printf("\nTime = %f seconds\n", seconds);
-	printf("Speed = %f MiB/second\n", (float) TEST_BLOCK_LEN *
-		(float) TEST_BLOCK_COUNT / seconds / (1 << 20));
+	printf("Speed = %f MiB/second\n", (double) TEST_BLOCK_LEN *
+		(double) TEST_BLOCK_COUNT / seconds / (1 << 20));
 }
 /*
  * Digests a reference suite of strings and prints the results.
@@ -953,7 +953,7 @@ MDTestSuite(const Algorithm_t *alg)
 #ifdef USE_CC
 		CC_Data(alg->algorithm, MDTestInput[i], strlen(MDTestInput[i]), buffer);
 #else
-		(*alg->Data)((const unsigned char *)MDTestInput[i], strlen(MDTestInput[i]), buffer);
+		(*alg->Data)((const unsigned char *)MDTestInput[i], (unsigned int)strlen(MDTestInput[i]), buffer);
 #endif
 		printf("%s (\"%s\") = %s", alg->name, MDTestInput[i], buffer);
 		if (strcmp(buffer, (*alg->TestOutput)[i]) == 0) {
@@ -973,7 +973,7 @@ static char *
 MDFilter(const Algorithm_t *alg, char *buf, int tee)
 {
 	DIGEST_CTX context;
-	unsigned int len;
+	unsigned long len;
 	unsigned char buffer[BUFSIZ];
 	char *p;
 
