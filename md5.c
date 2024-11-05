@@ -35,6 +35,7 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <getopt.h>
 #ifdef USE_MD
 #include <md5.h>
 #include <ripemd.h>
@@ -163,9 +164,6 @@ typedef struct Algorithm_t {
 #endif /* USE_CC */
 } Algorithm_t;
 
-#ifdef USE_MD
-static void MD5_Update(MD5_CTX *, const unsigned char *, size_t);
-#endif /* USE_MD */
 #ifndef USE_CC
 #if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
 static char *BLAKE3_Data(const unsigned char *, size_t, char *buf);
@@ -175,7 +173,7 @@ static void MDOutput(const Algorithm_t *, char *, char **);
 static void MDTimeTrial(const Algorithm_t *);
 static void MDTestSuite(const Algorithm_t *);
 static char *MDFilter(const Algorithm_t *, char*, int);
-static void usage(const Algorithm_t *);
+static void usage(const Algorithm_t *) __attribute__ ((__noreturn__));
 
 #ifdef USE_CC
 typedef union {
@@ -231,9 +229,11 @@ typedef union {
 #endif /* USE_MD */
 
 #ifdef USE_CC
+#ifdef HAVE_BLAKE3
 #define kCCDigestBLAKE3 (kCCDigestMax + 0xb3) /* outside normal enum */
+#endif
 
-void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
+static void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 {
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
@@ -243,7 +243,7 @@ void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 	CCDigestInit(alg, &ctx->cc);
 }
 
-void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
+static void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 {
 #ifdef HAVE_BLAKE3
 	if (BLAKE3Context(ctx))
@@ -253,7 +253,7 @@ void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 	CCDigestUpdate(&ctx->cc, data, length);
 }
 
-char *CC_End(DIGEST_CTX *ctx, char *buf)
+static char *CC_End(DIGEST_CTX *ctx, char *buf)
 {
 #ifdef HAVE_BLAKE3
 	if (BLAKE3Context(ctx))
@@ -263,7 +263,7 @@ char *CC_End(DIGEST_CTX *ctx, char *buf)
 	return Digest_End(&ctx->cc, buf);
 }
 
-char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
+static char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
 {
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
@@ -273,7 +273,7 @@ char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
 	return Digest_Data(alg, data, len, buf);
 }
 
-char *CC_Fd(CCDigestAlg alg, int fd, char *buf)
+static char *CC_Fd(CCDigestAlg alg, int fd, char *buf)
 {
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
@@ -304,7 +304,7 @@ static const struct Algorithm_t Algorithm[] = {
 #endif
 #else
 	{ "md5", "MD5", &MD5TestOutput, (DIGEST_Init*)&MD5Init,
-		(DIGEST_Update*)&MD5_Update, (DIGEST_End*)&MD5End,
+		(DIGEST_Update*)&MD5Update, (DIGEST_End*)&MD5End,
 		&MD5Data, &MD5Fd },
 	{ "sha1", "SHA1", &SHA1_TestOutput, (DIGEST_Init*)&SHA1_Init,
 		(DIGEST_Update*)&SHA1_Update, (DIGEST_End*)&SHA1_End,
@@ -364,14 +364,6 @@ static const struct Algorithm_t Algorithm[] = {
 static unsigned	digest;
 static unsigned	malformed;
 static bool	gnu_emu = false;
-
-#ifdef USE_MD
-static void
-MD5_Update(MD5_CTX *c, const unsigned char *data, size_t len)
-{
-	MD5Update(c, data, len);
-}
-#endif /* USE_MD */
 
 #ifndef USE_CC
 #if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
@@ -481,11 +473,12 @@ main(int argc, char *argv[])
 #ifdef USE_FD
 	int	fd;
 #endif
-	char   *p, *string;
+	char   *p, *string = "";
 	char	buf[HEX_DIGEST_LENGTH];
 	size_t	len;
 	const char*	progname;
 	struct chksumrec	*rec = NULL;
+	char		**args = NULL;
 	unsigned int	numrecs = 0;
 
 	if(*argv) {
@@ -579,7 +572,8 @@ main(int argc, char *argv[])
 		 * Replace argv by an array of filenames from the digest file
 		 */
 		argc = 0;
-		argv = (char**)calloc(numrecs + 1, sizeof(char *));
+		args = (char**)calloc(numrecs + 1, sizeof(char *));
+		argv = args;
 		for (rec = head; rec != NULL; rec = rec->next) {
 			argv[argc] = rec->filename;
 			argc++;
@@ -588,6 +582,7 @@ main(int argc, char *argv[])
 		rec = head;
 	}
 
+	(void)argc;
 	if (*argv) {
 		do {
 #ifdef USE_FD
@@ -616,7 +611,7 @@ main(int argc, char *argv[])
 					err(1, "capsicum");
 #endif
 			}
-			if (cflag && gnu_emu) {
+			if (cflag && gnu_emu && rec != NULL) {
 				checkAgainst = rec->chksum;
 				rec = rec->next;
 			}
@@ -654,6 +649,7 @@ main(int argc, char *argv[])
 #endif
 		MDOutput(&Algorithm[digest], p, &string);
 	}
+	free(args);
 	if (gnu_emu) {
 		if (cflag && checked == 0)
 			warnx("%s: no file was verified", file);

@@ -21,7 +21,7 @@ char *JOIN(MDX,_Data)(const void *data, unsigned int len, char *buf)
         JOIN(MDX,_CTX) ctx;
 
         JOIN(MDX,_Init)(&ctx);
-        JOIN(MDX,_Update)(&ctx, (uint8_t*)data, (size_t)len);
+        JOIN(MDX,_Update)(&ctx, (const uint8_t*)data, (size_t)len);
         JOIN(MDX,_End)(&ctx, buf);
         return buf;
 }
