@@ -616,7 +616,7 @@ main(int argc, char *argv[])
 				rec = rec->next;
 			}
 #ifdef USE_CC
-			p = Digest_Fd(Algorithm[digest].algorithm, fd, buf);
+			p = CC_Fd(Algorithm[digest].algorithm, fd, buf);
 #endif
 #ifdef USE_MD
 #ifdef __FreeBSD__
