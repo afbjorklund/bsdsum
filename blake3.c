@@ -3,10 +3,21 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "blake3.h"
 
 #define CHUNK_SIZE 65536
+
+// from blake3_impl.h
+static const uint32_t IV[8] = {0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL,
+                               0xA54FF53AUL, 0x510E527FUL, 0x9B05688CUL,
+                               0x1F83D9ABUL, 0x5BE0CD19UL};
+
+bool BLAKE3Context(BLAKE3_CTX *ctx)
+{
+	return memcmp(ctx->key, IV, 32) == 0;
+}
 
 void BLAKE3Init(BLAKE3_CTX *ctx)
 {

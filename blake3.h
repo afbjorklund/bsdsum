@@ -1,8 +1,10 @@
 #include <blake3.h>
+#include <stdbool.h>
 
 #define BLAKE3_DIGEST_LENGTH BLAKE3_OUT_LEN
 typedef blake3_hasher BLAKE3_CTX;
 
+bool BLAKE3Context(BLAKE3_CTX *);
 void BLAKE3Init(BLAKE3_CTX *);
 void BLAKE3Update(BLAKE3_CTX *, const uint8_t *, size_t);
 void BLAKE3Final(uint8_t [BLAKE3_DIGEST_LENGTH], BLAKE3_CTX *);

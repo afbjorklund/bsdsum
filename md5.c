@@ -233,15 +233,6 @@ typedef union {
 #ifdef USE_CC
 #define kCCDigestBLAKE3 (kCCDigestMax + 0xb3) /* outside normal enum */
 
-#ifdef HAVE_BLAKE3
-static const uint32_t IV[8] = {0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL,
-                               0xA54FF53AUL, 0x510E527FUL, 0x9B05688CUL,
-                               0x1F83D9ABUL, 0x5BE0CD19UL};
-static bool IS_IV(uint32_t key[8]) { return memcmp(key, IV, 32) == 0; }
-/* this is a hack in order to separate contexts */
-#define IS_BLAKE3_CTX(ctx) IS_IV(ctx->blake3.key)
-#endif
-
 void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 {
 #ifdef HAVE_BLAKE3
@@ -255,7 +246,7 @@ void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 {
 #ifdef HAVE_BLAKE3
-	if (IS_BLAKE3_CTX(ctx))
+	if (BLAKE3Context(ctx))
 		BLAKE3Update(&ctx->blake3, data, length);
 	else
 #endif
@@ -265,7 +256,7 @@ void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 char *CC_End(DIGEST_CTX *ctx, char *buf)
 {
 #ifdef HAVE_BLAKE3
-	if (IS_BLAKE3_CTX(ctx))
+	if (BLAKE3Context(ctx))
 		return BLAKE3End(&ctx->blake3, buf);
 	else
 #endif
