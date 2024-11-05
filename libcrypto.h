@@ -3,6 +3,7 @@
 #include <openssl/ripemd.h>
 #include <openssl/sha.h>
 
+#define SHA1_DIGEST_LENGTH SHA_DIGEST_LENGTH
 typedef SHA_CTX SHA1_CTX;
 typedef SHA256_CTX SHA224_CTX;
 typedef SHA512_CTX SHA384_CTX;
