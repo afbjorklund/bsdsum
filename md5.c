@@ -246,7 +246,7 @@ static void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 static void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 {
 #ifdef HAVE_BLAKE3
-	if (BLAKE3Context(ctx))
+	if (BLAKE3Context(&ctx->blake3))
 		BLAKE3Update(&ctx->blake3, data, length);
 	else
 #endif
@@ -256,7 +256,7 @@ static void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 static char *CC_End(DIGEST_CTX *ctx, char *buf)
 {
 #ifdef HAVE_BLAKE3
-	if (BLAKE3Context(ctx))
+	if (BLAKE3Context(&ctx->blake3))
 		return BLAKE3End(&ctx->blake3, buf);
 	else
 #endif
