@@ -101,6 +101,7 @@ __FBSDID("$FreeBSD$");
 
 #include "base32.h"
 #include "base58.h"
+#include "base64.h"
 
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
@@ -872,6 +873,9 @@ static void print_multiformat(const char *f, char *p)
 	} else if (strcmp(encoding, "base58btc") == 0) {
 		printf("%c", 'z'); /* base58btc, mixed case */
 		base = 58;
+	} else if (strcmp(encoding, "base64") == 0) {
+		printf("%c", 'm'); /* base64, mixed case - no padding */
+		base = 64;
 	} else {
 		return;
 	}
@@ -937,6 +941,10 @@ static void print_multiformat(const char *f, char *p)
 		break;
 	case 58:
 		b58enc(out, &outlen, buf, strlen(code) + 1 + len);
+		printf("%s", out);
+		break;
+	case 64:
+		base64_encode(buf, strlen(code) + 1 + len, out);
 		printf("%s", out);
 		break;
 	}

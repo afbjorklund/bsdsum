@@ -91,6 +91,7 @@ endif
 
 md5: base32.o
 md5: base58.o
+md5: base64.o
 
 .PHONY: install
 install: install-bin install-man
