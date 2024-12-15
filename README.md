@@ -44,7 +44,17 @@ It is the default on FreeBSD, but optional on macOS and GNU/Linux.
 - skein256
 - skein512
 - skein1024
-- blake3
+- keccak224
+- keccak256
+- keccak384
+- keccak512
+- **blake3**
+
+The six functions `sha224` through `sha512t256` are all part of SHA-2.<br />
+Skein was one of the SHA-3 proposals, but in the end it lost to Keccak.
+
+The software implementations of SHA-3 are twice as slow as SHA-2, but<br />
+the hardware implementations of SHA-3 are faster than SHA-1 and SHA-2.
 
 BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
 
