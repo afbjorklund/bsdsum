@@ -14,9 +14,7 @@ LINKS += skein256 skein512 skein1024
 LINKS += skein256sum skein512sum skein1024sum
 endif
 endif
-ifeq ($(B3),true)
 LINKS += blake3 blake3sum
-endif
 PROGS = $(PROG) $(LINKS)
 
 prefix = /usr/local
@@ -32,6 +30,7 @@ MD = true
 else
 MD ?= false
 endif
+B3 ?= false
 
 ifeq ($(MD),true)
 CFLAGS += -DUSE_MD
@@ -42,12 +41,9 @@ LIBS += -lcrypto
 endif
 endif
 ifeq ($(B3),true)
-CFLAGS += -DHAVE_BLAKE3
-ifeq ($(MD),true)
-LIBS += -lblake3-portable
+CFLAGS += -DUSE_B3
 else
-LIBS += -lblake3 # simd
-endif
+LIBS += -lblake3
 endif
 
 md5: md5.o
@@ -61,8 +57,9 @@ ifeq ($(UNAME),Linux)
 md5: libcrypto.o
 endif
 endif
+md5: libblake3.o
 ifeq ($(B3),true)
-md5: blake3.o
+md5: libb3/b3.o
 endif
 
 .PHONY: install

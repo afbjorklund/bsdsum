@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "blake3.h"
+#include "libblake3.h"
 
 #define CHUNK_SIZE 65536
 

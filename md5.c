@@ -66,9 +66,6 @@ __FBSDID("$FreeBSD$");
 #define HAVE_SKEIN
 #endif
 #endif /* USE_MD */
-#ifdef HAVE_BLAKE3
-#include "blake3.h"
-#endif
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -91,6 +88,9 @@ __FBSDID("$FreeBSD$");
 #define USE_FD
 #endif /* __linux__ */
 #endif /* USE_MD */
+
+#include "libblake3.h"
+#define HAVE_BLAKE3
 
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
