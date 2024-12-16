@@ -1,4 +1,8 @@
+#ifndef USE_B3
 #include <blake3.h>
+#else
+#include <b3.h>
+#endif
 #include <stdbool.h>
 
 #define BLAKE3_DIGEST_LENGTH BLAKE3_OUT_LEN

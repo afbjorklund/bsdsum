@@ -41,7 +41,7 @@ LIBS += -lcrypto
 endif
 endif
 ifeq ($(B3),true)
-CFLAGS += -DUSE_B3
+CFLAGS += -DUSE_B3 -Ilibb3
 else
 LIBS += -lblake3
 endif
