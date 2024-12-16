@@ -18,6 +18,11 @@ sha384sum
 sha512sum
 sha512t256sum
 
+keccak256
+keccak512
+keccak256sum
+keccak512sum
+
 blake3
 blake3sum
 

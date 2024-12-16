@@ -14,6 +14,8 @@ LINKS += skein256 skein512 skein1024
 LINKS += skein256sum skein512sum skein1024sum
 endif
 endif
+LINKS += keccak256 keccak512
+LINKS += keccak256sum keccak512sum
 LINKS += blake3 blake3sum
 PROGS = $(PROG) $(LINKS)
 
@@ -30,6 +32,7 @@ MD = true
 else
 MD ?= false
 endif
+S3 ?= false
 B3 ?= false
 
 ifeq ($(MD),true)
@@ -39,6 +42,11 @@ else
 ifeq ($(UNAME),Linux)
 LIBS += -lcrypto
 endif
+endif
+ifeq ($(S3),true)
+CFLAGS += -DUSE_S3 -Ilibs3
+else
+LIBS += -lXKCP
 endif
 ifeq ($(B3),true)
 CFLAGS += -DUSE_B3 -Ilibb3
@@ -56,6 +64,10 @@ endif
 ifeq ($(UNAME),Linux)
 md5: libcrypto.o
 endif
+endif
+md5: libkeccak.o
+ifeq ($(S3),true)
+md5: libs3/s3.o
 endif
 md5: libblake3.o
 ifeq ($(B3),true)

@@ -56,6 +56,10 @@ Skein was one of the SHA-3 proposals, but in the end it lost to Keccak.
 The software implementations of SHA-3 are twice as slow as SHA-2, but<br />
 the hardware implementations of SHA-3 are faster than SHA-1 and SHA-2.
 
+By setting `S3=true` you can use the bundled "libs3" for SHA-3 support.
+
+The default is to use libXKCP, which has both SIMD and generic version.
+
 BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
 
 <https://blake3.io>

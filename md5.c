@@ -89,6 +89,9 @@ __FBSDID("$FreeBSD$");
 #endif /* __linux__ */
 #endif /* USE_MD */
 
+#include "libkeccak.h"
+#define HAVE_KECCAK
+
 #include "libblake3.h"
 #define HAVE_BLAKE3
 
@@ -135,6 +138,10 @@ extern const char *SKEIN256_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN512_TestOutput[MDTESTCOUNT];
 extern const char *SKEIN1024_TestOutput[MDTESTCOUNT];
 #endif
+#ifdef HAVE_KECCAK
+extern const char *KECCAK256_TestOutput[MDTESTCOUNT];
+extern const char *KECCAK512_TestOutput[MDTESTCOUNT];
+#endif
 #ifdef HAVE_BLAKE3
 extern const char *BLAKE3TestOutput[MDTESTCOUNT];
 #endif
@@ -165,6 +172,10 @@ typedef struct Algorithm_t {
 } Algorithm_t;
 
 #ifndef USE_CC
+#if defined(HAVE_KECCAK) && !defined(USE_MD)
+static char *KECCAK256Data(const void *, unsigned int, char *);
+static char *KECCAK512Data(const void *, unsigned int, char *);
+#endif
 #if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
 static char *BLAKE3_Data(const unsigned char *, size_t, char *buf);
 #endif
@@ -200,6 +211,9 @@ typedef union {
 	SKEIN512_CTX skein512;
 	SKEIN1024_CTX skein1024;
 #endif
+#ifdef HAVE_KECCAK
+	KECCAK_CTX keccak;
+#endif
 #ifdef HAVE_BLAKE3
 	BLAKE3_CTX blake3;
 #endif
@@ -224,6 +238,8 @@ typedef union {
 #define SHA512_Fd SHA512_File
 #define SHA512_256_Fd SHA512_256_File
 #define RIPEMD160_Fd RIPEMD160_File
+#define KECCAK256_Fd KECCAK256_File
+#define KECCAK512_Fd KECCAK512_File
 #define BLAKE3Fd BLAKE3File
 #endif
 #endif /* USE_MD */
@@ -349,6 +365,22 @@ static const struct Algorithm_t Algorithm[] = {
 		(DIGEST_Init*)&SKEIN1024_Init, (DIGEST_Update*)&SKEIN1024_Update,
 		(DIGEST_End*)&SKEIN1024_End, &SKEIN1024_Data, &SKEIN1024_Fd }
 #endif
+#ifdef HAVE_KECCAK
+	{ "keccak256", "Keccak256", &KECCAK256_TestOutput,
+		(DIGEST_Init*)&KECCAK256_Init, (DIGEST_Update*)&KECCAK256_Update,
+#if defined(HAVE_KECCAK) && defined(USE_MD) && !defined(__FreeBSD__)
+		(DIGEST_End*)&KECCAK256_End, &KECCAK256_Data, &KECCAK256_Fd },
+#else
+		(DIGEST_End*)&KECCAK256_End, &KECCAK256Data, &KECCAK256_Fd },
+#endif
+	{ "keccak512", "Keccak512", &KECCAK512_TestOutput,
+		(DIGEST_Init*)&KECCAK512_Init, (DIGEST_Update*)&KECCAK512_Update,
+#if defined(HAVE_KECCAK) && defined(USE_MD) && !defined(__FreeBSD__)
+		(DIGEST_End*)&KECCAK512_End, &KECCAK512_Data, &KECCAK512_Fd },
+#else
+		(DIGEST_End*)&KECCAK512_End, &KECCAK512Data, &KECCAK512_Fd },
+#endif
+#endif
 #ifdef HAVE_BLAKE3
 	{ "blake3", "BLAKE3", &BLAKE3TestOutput,
 		(DIGEST_Init*)&BLAKE3Init, (DIGEST_Update*)&BLAKE3Update,
@@ -366,6 +398,18 @@ static unsigned	malformed;
 static bool	gnu_emu = false;
 
 #ifndef USE_CC
+#if defined(HAVE_KECCAK) && !defined(USE_MD)
+static char *
+KECCAK256Data(const void *data, unsigned int len, char *buf)
+{
+	return KECCAK256_Data(data, len, buf);
+}
+static char *
+KECCAK512Data(const void *data, unsigned int len, char *buf)
+{
+	return KECCAK512_Data(data, len, buf);
+}
+#endif
 #if defined(HAVE_BLAKE3) && defined(USE_MD) && !defined(__FreeBSD__)
 static char *
 BLAKE3_Data(const unsigned char *data, size_t len, char *buf)
@@ -923,6 +967,29 @@ const char *SKEIN1024_TestOutput[MDTESTCOUNT] = {
 	"cf3889e8a8d11bfd3938055d7d061437962bc5eac8ae83b1b71c94be201b8cf657fdbfc38674997a008c0c903f56a23feb3ae30e012377f1cfa080a9ca7fe8b96138662653fb3335c7d06595bf8baf65e215307532094cfdfa056bd8052ab792a3944a2adaa47b30335b8badb8fe9eb94fe329cdca04e58bbc530f0af709f469",
 	"cf21a613620e6c119eca31fdfaad449a8e02f95ca256c21d2a105f8e4157048f9fe1e897893ea18b64e0e37cb07d5ac947f27ba544caf7cbc1ad094e675aed77a366270f7eb7f46543bccfa61c526fd628408058ed00ed566ac35a9761d002e629c4fb0d430b2f4ad016fcc49c44d2981c4002da0eecc42144160e2eaea4855a",
 	"e6799b78db54085a2be7ff4c8007f147fa88d326abab30be0560b953396d8802feee9a15419b48a467574e9283be15685ca8a079ee52b27166b64dd70b124b1d4e4f6aca37224c3f2685e67e67baef9f94b905698adc794a09672aba977a61b20966912acdb08c21a2c37001785355dc884751a21f848ab36e590331ff938138"
+};
+#endif
+#ifdef HAVE_KECCAK
+const char *KECCAK256_TestOutput[MDTESTCOUNT] = {
+	"a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+	"80084bf2fba02475726feb2cab2d8215eab14bc6bdd8bfb2c8151257032ecd8b",
+	"3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532",
+	"edcdb2069366e75243860c18c3a11465eca34bce6143d30c8665cefcfd32bffd",
+	"7cab2dc765e21b241dbc1c255ce620b29f527c6d5e7f5f843e56288f0d707521",
+	"a79d6a9da47f04a3b9a9323ec9991f2105d4c78a7bc7beeb103855a7a11dfb9f",
+	"293e5ce4ce54ee71990ab06e511b7ccd62722b1beb414f5ff65c8274e0f5be1d",
+	"dde69665739fb1faf226277d40c2ddc6f6efcc9b70deb88e47c3301814c28553"
+};
+
+const char *KECCAK512_TestOutput[MDTESTCOUNT] = {
+	"a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26",
+	"697f2d856172cb8309d6b8b97dac4de344b549d4dee61edfb4962d8698b7fa803f4f93ff24393586e28b5b957ac3d1d369420ce53332712f997bd336d09ab02a",
+	"b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0",
+	"3444e155881fa15511f57726c7d7cfe80302a7433067b29d59a71415ca9dd141ac892d310bc4d78128c98fda839d18d7f0556f2fe7acb3c0cda4bff3a25f5f59",
+	"af328d17fa28753a3c9f5cb72e376b90440b96f0289e5703b729324a975ab384eda565fc92aaded143669900d761861687acdc0a5ffa358bd0571aaad80aca68",
+	"d1db17b4745b255e5eb159f66593cc9c143850979fc7a3951796aba80165aab536b46174ce19e3f707f0e5c6487f5f03084bc0ec9461691ef20113e42ad28163",
+	"9524b9a5536b91069526b4f6196b7e9475b4da69e01f0c855797f224cd7335ddb286fd99b9b32ffe33b59ad424cc1744f6eb59137f5fb8601932e8a8af0ae930",
+	"47c45332dd24bc37cbb79fb7e4fadc4b2943ebea936525ebef59f96933eae5165177b94c2665b62062d1412800c31f5eb997b3be5589cf141f67c419ec86f6e0"
 };
 #endif
 #ifdef HAVE_BLAKE3
