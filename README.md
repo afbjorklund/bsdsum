@@ -51,7 +51,7 @@ It is the default on FreeBSD, but optional on macOS and GNU/Linux.
 - **blake3**
 
 The six functions `sha224` through `sha512t256` are all part of SHA-2.<br />
-Skein was one of the SHA-3 proposals, but in the end it lost to Keccak.
+Skein was one of the SHA-3 proposals, but in the end it lost to [Keccak](https://keccak.team/).
 
 The software implementations of SHA-3 are twice as slow as SHA-2, but<br />
 the hardware implementations of SHA-3 are faster than SHA-1 and SHA-2.
@@ -60,6 +60,8 @@ By setting `S3=true` you can use the bundled "libs3" for SHA-3 support.
 
 The default is to use libXKCP, which has both SIMD and generic version.
 
+<https://github.com/XKCP/XKCP>
+
 BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
 
 <https://blake3.io>
@@ -67,6 +69,8 @@ BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
 By setting `B3=true` you can use the bundled "libb3" for BLAKE3 support.
 
 The default is to use libblake3, which has both SIMD and portable version.
+
+<https://github.com/BLAKE3-team/BLAKE3>
 
 ## Formats
 
