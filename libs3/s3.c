@@ -6,7 +6,15 @@
 
 #include "s3.h"
 
-// // Compression function.
+#ifndef KECCAKF_ROUNDS
+#define KECCAKF_ROUNDS 24
+#endif
+
+#ifndef ROTL64
+#define ROTL64(x, y) (((x) << (y)) | ((x) >> (64 - (y))))
+#endif
+
+// Compression function.
 static void sha3_keccakf(uint64_t st[25]);
 
 // update the state with given number of rounds
