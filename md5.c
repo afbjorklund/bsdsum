@@ -189,6 +189,9 @@ static void usage(const Algorithm_t *) __attribute__ ((__noreturn__));
 #ifdef USE_CC
 typedef union {
 	CCDigestCtx cc;
+#ifdef HAVE_KECCAK
+	KECCAK_CTX keccak;
+#endif
 #ifdef HAVE_BLAKE3
 	BLAKE3_CTX blake3;
 #endif
@@ -245,12 +248,83 @@ typedef union {
 #endif /* USE_MD */
 
 #ifdef USE_CC
+#ifdef HAVE_KECCAK
+#define kCCDigestKECCAK224 (kCCDigestMax + 0x30) /* outside normal enum */
+#define kCCDigestKECCAK256 (kCCDigestMax + 0x31) /* outside normal enum */
+#define kCCDigestKECCAK384 (kCCDigestMax + 0x32) /* outside normal enum */
+#define kCCDigestKECCAK512 (kCCDigestMax + 0x33) /* outside normal enum */
+#endif
 #ifdef HAVE_BLAKE3
 #define kCCDigestBLAKE3 (kCCDigestMax + 0xb3) /* outside normal enum */
 #endif
 
+
+#ifdef HAVE_KECCAK
+void KECCAK_Init(CCDigestAlg alg, KECCAK_CTX *ctx)
+{
+	switch (alg) {
+		case kCCDigestKECCAK256:
+			KECCAK256_Init(ctx);
+			break;
+		case kCCDigestKECCAK512:
+			KECCAK512_Init(ctx);
+			break;
+	}
+}
+
+void KECCAK_Update(CCDigestAlg alg, KECCAK_CTX *ctx, const void *data, size_t length)
+{
+	switch (alg) {
+		case kCCDigestKECCAK256:
+			KECCAK256_Update(ctx, data, length);
+			break;
+		case kCCDigestKECCAK512:
+			KECCAK512_Update(ctx, data, length);
+			break;
+	}
+}
+
+char *KECCAK_End(CCDigestAlg alg, KECCAK_CTX *ctx, char *buf)
+{
+	switch (alg) {
+		case kCCDigestKECCAK256:
+			return KECCAK256_End(ctx, buf);
+		case kCCDigestKECCAK512:
+			return KECCAK512_End(ctx, buf);
+	}
+	return NULL;
+}
+
+char *KECCAK_Fd(CCDigestAlg alg, int fd, char *buf)
+{
+	switch (alg) {
+		case kCCDigestKECCAK256:
+			return KECCAK256_Fd(fd, buf);
+		case kCCDigestKECCAK512:
+			return KECCAK512_Fd(fd, buf);
+	}
+	return NULL;
+}
+
+char *KECCAK_Data(CCDigestAlg alg, const unsigned char *data, unsigned int len, char *buf)
+{
+	switch (alg) {
+		case kCCDigestKECCAK256:
+			return KECCAK256_Data(data, len, buf);
+		case kCCDigestKECCAK512:
+			return KECCAK512_Data(data, len, buf);
+	}
+	return NULL;
+}
+#endif
+
 static void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 {
+#ifdef HAVE_KECCAK
+	if (alg >= kCCDigestKECCAK224 && alg <= kCCDigestKECCAK512)
+		KECCAK_Init(alg, &ctx->keccak);
+	else
+#endif
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
 		BLAKE3Init(&ctx->blake3);
@@ -259,8 +333,13 @@ static void CC_Init(CCDigestAlg alg, DIGEST_CTX *ctx)
 	CCDigestInit(alg, &ctx->cc);
 }
 
-static void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
+static void CC_Update(CCDigestAlg alg, DIGEST_CTX *ctx, const void *data, size_t length)
 {
+#ifdef HAVE_KECCAK
+	if (alg >= kCCDigestKECCAK224 && alg <= kCCDigestKECCAK512)
+		KECCAK_Update(alg, &ctx->keccak, data, length);
+	else
+#endif
 #ifdef HAVE_BLAKE3
 	if (BLAKE3Context(&ctx->blake3))
 		BLAKE3Update(&ctx->blake3, data, length);
@@ -269,8 +348,13 @@ static void CC_Update(DIGEST_CTX *ctx, const void *data, size_t length)
 	CCDigestUpdate(&ctx->cc, data, length);
 }
 
-static char *CC_End(DIGEST_CTX *ctx, char *buf)
+static char *CC_End(CCDigestAlg alg, DIGEST_CTX *ctx, char *buf)
 {
+#ifdef HAVE_KECCAK
+	if (alg >= kCCDigestKECCAK224 && alg <= kCCDigestKECCAK512)
+		return KECCAK_End(alg, &ctx->keccak, buf);
+	else
+#endif
 #ifdef HAVE_BLAKE3
 	if (BLAKE3Context(&ctx->blake3))
 		return BLAKE3End(&ctx->blake3, buf);
@@ -281,6 +365,11 @@ static char *CC_End(DIGEST_CTX *ctx, char *buf)
 
 static char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
 {
+#ifdef HAVE_KECCAK
+	if (alg >= kCCDigestKECCAK224 && alg <= kCCDigestKECCAK512)
+		return KECCAK_Data(alg, data, len, buf);
+	else
+#endif
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
 		return BLAKE3Data(data, len, buf);
@@ -291,6 +380,11 @@ static char *CC_Data(CCDigestAlg alg, const void *data, size_t len, char *buf)
 
 static char *CC_Fd(CCDigestAlg alg, int fd, char *buf)
 {
+#ifdef HAVE_KECCAK
+	if (alg >= kCCDigestKECCAK224 && alg <= kCCDigestKECCAK512)
+		return KECCAK_Fd(alg, fd, buf);
+	else
+#endif
 #ifdef HAVE_BLAKE3
 	if (alg == kCCDigestBLAKE3)
 		return BLAKE3Fd(fd, buf);
@@ -315,6 +409,10 @@ static const struct Algorithm_t Algorithm[] = {
 	{ "sha256", "SHA256", &SHA256_TestOutput, kCCDigestSHA256 },
 	{ "sha512", "SHA512", &SHA512_TestOutput, kCCDigestSHA512 },
 	{ "rmd160", "RMD160", &RIPEMD160_TestOutput, kCCDigestRMD160 },
+#ifdef HAVE_KECCAK
+	{ "keccak256", "Keccak256", &KECCAK256_TestOutput, kCCDigestKECCAK256 },
+	{ "keccak512", "Keccak512", &KECCAK512_TestOutput, kCCDigestKECCAK512 },
+#endif
 #ifdef HAVE_BLAKE3
 	{ "blake3", "BLAKE3", &BLAKE3TestOutput, kCCDigestBLAKE3 },
 #endif
@@ -792,8 +890,8 @@ MDTimeTrial(const Algorithm_t *alg)
 #ifdef USE_CC
 	CC_Init(alg->algorithm, &context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
-		CC_Update(&context, block, TEST_BLOCK_LEN);
-	p = CC_End(&context, buf);
+		CC_Update(alg->algorithm, &context, block, TEST_BLOCK_LEN);
+	p = CC_End(alg->algorithm, &context, buf);
 #else
 	alg->Init(&context);
 	for (i = 0; i < TEST_BLOCK_COUNT; i++)
@@ -1049,7 +1147,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 		if (tee && len != fwrite(buffer, 1, len, stdout))
 			err(1, "stdout");
 #ifdef USE_CC
-		CC_Update(&context, buffer, len);
+		CC_Update(alg->algorithm, &context, buffer, len);
 #else
 		alg->Update(&context, buffer, len);
 #endif
@@ -1058,7 +1156,7 @@ MDFilter(const Algorithm_t *alg, char *buf, int tee)
 		errx(EX_IOERR, NULL);
 	}
 #ifdef USE_CC
-	p = CC_End(&context, buf);
+	p = CC_End(alg->algorithm, &context, buf);
 #else
 	p = alg->End(&context, buf);
 #endif
