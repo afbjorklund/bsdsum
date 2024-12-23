@@ -1,14 +1,5 @@
 #include <stdint.h>
 
-#define BLAKE3_KEY_LEN 32
-#define BLAKE3_OUT_LEN 32
-
-/* for compatibility with libblake3 */
-typedef struct blake3 blake3_hasher;
-#define blake3_init blake3_hasher_init
-#define blake3_update blake3_hasher_update
-#define blake3_out blake3_hasher_finalize
-
 struct blake3 {
     uint32_t key[8];
 	unsigned char input[64];      /* current input bytes */

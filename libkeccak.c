@@ -8,8 +8,6 @@
 #include <string.h>
 
 #ifdef USE_S3
-typedef sha3_ctx_t Keccak_HashInstance;
-
 // For compatibility with libXKCP
 #define Keccak_HashInitialize_SHA3_224(hi) sha3_init(hi, 224 / 8)
 #define Keccak_HashInitialize_SHA3_256(hi) sha3_init(hi, 256 / 8)

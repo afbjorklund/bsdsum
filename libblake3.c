@@ -9,6 +9,13 @@
 
 #define CHUNK_SIZE 65536
 
+#ifdef USE_B3
+/* for compatibility with libblake3 */
+#define blake3_hasher_init blake3_init
+#define blake3_hasher_update blake3_update
+#define blake3_hasher_finalize blake3_out
+#endif
+
 // from blake3_impl.h
 static const uint32_t IV[8] = {0x6A09E667UL, 0xBB67AE85UL, 0x3C6EF372UL,
                                0xA54FF53AUL, 0x510E527FUL, 0x9B05688CUL,
