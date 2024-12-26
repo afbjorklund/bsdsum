@@ -102,6 +102,26 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  empty
 af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262  empty
 ```
 
+## Benchmark
+
+Comparing the algorithms on two machines, macOS arm64 and Linux amd64.
+
+![](assets/bsdsum-benchmark.png)
+
+`make benchmark` runs the built-in benchmark (the `-t` command line flag)
+
+Note that it uses a small test set: `Digesting 100000 10000-byte blocks`.
+
+## Timing
+
+Comparing the time it takes to checksum the Ubuntu cloud image, 1 thread.
+
+![](assets/bsdsum-timing.png)
+
+On macOS you want to be using `sha256sum`, on Linux instead `blake3sum`.
+
+Assuming that macOS uses aarch64 (arm64), and Linux uses x86_64 (amd64).
+
 ---
 
 https://opensource.apple.com/releases/
