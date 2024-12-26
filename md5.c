@@ -770,7 +770,7 @@ main(int argc, char *argv[])
 #ifdef USE_LC
 			p = Algorithm[digest].Fd(fd, buf);
 #endif
-#ifdef USE_DD
+#ifdef USE_FD
 			(void)close(fd);
 #endif
 			MDOutput(&Algorithm[digest], p, argv);
