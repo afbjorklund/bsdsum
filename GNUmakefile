@@ -1,4 +1,5 @@
-B3 ?= false
+SHA3 ?= false
+BLAKE3 ?= true
 
 PROG = md5
 UNAME ?= $(shell uname)
@@ -14,9 +15,13 @@ LINKS += skein256 skein512 skein1024
 LINKS += skein256sum skein512sum skein1024sum
 endif
 endif
+ifeq ($(SHA3),true)
 LINKS += keccak256 keccak512
 LINKS += keccak256sum keccak512sum
+endif
+ifeq ($(BLAKE3),true)
 LINKS += blake3 blake3sum
+endif
 PROGS = $(PROG) $(LINKS)
 
 prefix = /usr/local
@@ -43,15 +48,21 @@ ifeq ($(UNAME),Linux)
 LIBS += -lcrypto
 endif
 endif
+ifeq ($(SHA3),true)
+CFLAGS += -DUSE_SHA3
 ifeq ($(S3),true)
 CFLAGS += -DUSE_S3 -Ilibs3
 else
 LIBS += -lXKCP
 endif
+endif
+ifeq ($(BLAKE3),true)
+CFLAGS += -DUSE_BLAKE3
 ifeq ($(B3),true)
 CFLAGS += -DUSE_B3 -Ilibb3
 else
 LIBS += -lblake3
+endif
 endif
 
 md5: md5.o
@@ -65,13 +76,17 @@ ifeq ($(UNAME),Linux)
 md5: libcrypto.o
 endif
 endif
+ifeq ($(SHA3),true)
 md5: libkeccak.o
 ifeq ($(S3),true)
 md5: libs3/s3.o
 endif
+endif
+ifeq ($(BLAKE3),true)
 md5: libblake3.o
 ifeq ($(B3),true)
 md5: libb3/b3.o
+endif
 endif
 
 .PHONY: install

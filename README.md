@@ -62,9 +62,9 @@ The default is to use libXKCP, which has both SIMD and generic version.
 
 <https://github.com/XKCP/XKCP>
 
-BLAKE3 is based on BLAKE2, which is based on the SHA-3 proposal BLAKE.
+[BLAKE3](https://blake3.io/) is based on [BLAKE2](https://blake2.net/), which is based on the SHA-3 proposal BLAKE.
 
-<https://blake3.io>
+It is faster in software, but yet no common implementations in hardware.
 
 By setting `B3=true` you can use the bundled "libb3" for BLAKE3 support.
 
@@ -82,12 +82,24 @@ The default is to use libblake3, which has both SIMD and portable version.
 SHA256 (empty) = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ```
 
+`blake3`
+
+```
+BLAKE3 (empty) = af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262
+```
+
 ### GNU
 
 `sha256sum`
 
 ```
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  empty
+```
+
+`blake3sum`
+
+```
+af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262  empty
 ```
 
 ---

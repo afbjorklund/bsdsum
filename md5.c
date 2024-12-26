@@ -89,11 +89,15 @@ __FBSDID("$FreeBSD$");
 #endif /* __linux__ */
 #endif /* USE_MD */
 
+#ifdef USE_KECCAK
 #include "libkeccak.h"
 #define HAVE_KECCAK
+#endif
 
+#ifdef USE_BLAKE3
 #include "libblake3.h"
 #define HAVE_BLAKE3
+#endif
 
 #ifdef HAVE_CAPSICUM
 #include <sys/capsicum.h>
