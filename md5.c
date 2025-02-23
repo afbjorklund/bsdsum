@@ -906,6 +906,14 @@ static void print_multiformat(const char *f, char *p)
 	} else if (strcmp(f, "rmd160") == 0) {
 		sprintf(code, "%c%c", 0xd3, 0x20); /* varint 0x1053 */
 		len = 160/ 8;
+#ifdef HAVE_KECCAK
+	} else if (strcmp(f, "keccak256") == 0) {
+		sprintf(code, "%c", 0x16);
+		len = 256 / 8;
+	} else if (strcmp(f, "keccak512") == 0) {
+		sprintf(code, "%c", 0x14);
+		len = 512 / 8;
+#endif
 #ifdef HAVE_BLAKE3
 	} else if (strcmp(f, "blake3") == 0) {
 		sprintf(code, "%c", 0x1e);
