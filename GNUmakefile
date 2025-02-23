@@ -49,7 +49,7 @@ LIBS += -lcrypto
 endif
 endif
 ifeq ($(SHA3),true)
-CFLAGS += -DUSE_SHA3
+CFLAGS += -DUSE_KECCAK
 ifeq ($(S3),true)
 CFLAGS += -DUSE_S3 -Ilibs3
 else
