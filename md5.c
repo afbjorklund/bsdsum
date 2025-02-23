@@ -906,6 +906,11 @@ static void print_multiformat(const char *f, char *p)
 	} else if (strcmp(f, "rmd160") == 0) {
 		sprintf(code, "%c%c", 0xd3, 0x20); /* varint 0x1053 */
 		len = 160/ 8;
+#ifdef HAVE_BLAKE3
+	} else if (strcmp(f, "blake3") == 0) {
+		sprintf(code, "%c", 0x1e);
+		len = 256 / 8;
+#endif
 	} else {
 		return;
 	}
