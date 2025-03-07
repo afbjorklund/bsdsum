@@ -202,6 +202,12 @@ typedef union {
 } DIGEST_CTX;
 #else /* !USE_CC */
 typedef union {
+#if USE_LC3
+	/* reserve "enough" memory: */
+	//struct evp_md_ctx_st evp;
+	//char evp[(sizeof(EVP_MD_CTX)];
+	char evp[10 * sizeof(void*)];
+#else
 	MD5_CTX md5;
 	SHA1_CTX sha1;
 #ifdef HAVE_SHA224
@@ -213,6 +219,7 @@ typedef union {
 #endif
 	SHA512_CTX sha512;
 	RIPEMD160_CTX ripemd160;
+#endif
 #ifdef HAVE_SKEIN
 	SKEIN256_CTX skein256;
 	SKEIN512_CTX skein512;

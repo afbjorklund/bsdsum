@@ -9,9 +9,9 @@
 
 char *JOIN(MDX,_End)(JOIN(MDX,_CTX) *ctx, char *buf)
 {
-	uint8_t digest[JOIN(MDX,_DIGEST_LENGTH)];
+        uint8_t digest[JOIN(MDX,_DIGEST_LENGTH)];
 
-	JOIN(MDX,_Final)(digest, ctx);
+        JOIN(MDX,_Final)(digest, ctx);
         tohex(digest, sizeof(digest), buf);
         return buf;
 }
