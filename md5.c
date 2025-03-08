@@ -573,7 +573,7 @@ static unsigned int gnu_check(const char *checksumsfile)
 		/*
 		 * supported formats:
 		 * BSD: <DigestName> (<Filename>): <Digest>
-		 * GNU: <Digest> [ *]<Filename>
+		 * GNU: [<DigestName>:]<Digest> [ *]<Filename>
 		 */
 		if (linelen >= digestnamelen + hashstrlen + 6 &&
 		    strncmp(linebuf, digestname, digestnamelen) == 0 &&
@@ -587,6 +587,18 @@ static unsigned int gnu_check(const char *checksumsfile)
 			filename = linebuf + hashstrlen + 1;
 			if (*filename == ' ' || *filename == '*')
 				filename++;
+		} else if (linelen >= digestnamelen + hashstrlen + 4 &&
+		    strncasecmp(linebuf, digestname, digestnamelen) == 0 &&
+		    linebuf[digestnamelen] == ':' &&
+		    linebuf[digestnamelen + 1 + hashstrlen] == ' ') {
+			linebuf[digestnamelen + 1 + hashstrlen] = '\0';
+			hashstr = linebuf + digestnamelen + 1;
+			filename = linebuf + digestnamelen + 1 + hashstrlen + 1;
+			if (*filename == ' ' || *filename == '*')
+				filename++;
+		} else if (strchr(linebuf, ':') != NULL) {
+			/* different digest, ignore this line */
+			continue;
 		} else {
 			malformed++;
 			continue;
@@ -1003,8 +1015,10 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 				if (gnu_emu)
 					if (bflag)
 						printf("%s *%s", p, *argv);
-					else
+					else if (!fflag)
 						printf("%s  %s", p, *argv);
+					else
+						printf("%s:%s  %s", alg->progname, p, *argv);
 				else
 					printf("%s %s", p, *argv);
 			else if (mflag)
@@ -1012,6 +1026,9 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 			else
 				printf("%s (%s) = %s", alg->name, *argv, p);
 			if (checkAgainst) {
+				char *q;
+				if ((q = strchr(p, ':')) != NULL)
+					p = q + 1;
 				checkfailed = strcasecmp(checkAgainst, p) != 0;
 				if (!qflag && checkfailed)
 					printf(" [ Failed ]");
