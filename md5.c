@@ -855,7 +855,7 @@ static int decode_hex(char c)
 static const char base32_lower[33] = "abcdefghijklmnopqrstuvwxyz234567";
 static const char base32_hex[33] =   "0123456789abcdefghijklmnopqrstuv";
 
-static void print_multiformat(const char *f, char *p)
+static void print_multiformat(const char *f, char *p, char *n)
 {
 	unsigned int i;
 	unsigned char c;
@@ -941,6 +941,8 @@ static void print_multiformat(const char *f, char *p)
 		}
 		printf("%02x", (char)len);
 		printf("%s", p);
+		if (n != NULL)
+			printf("  %s", n);
 		return;
 	}
 
@@ -975,6 +977,9 @@ static void print_multiformat(const char *f, char *p)
 	}
 	free(out);
 	free(buf);
+
+	if (n != NULL)
+		printf("  %s", n);
 }
 
 /*
@@ -1005,7 +1010,7 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 			if (fflag)
 				printf("%s:%s\n", alg->progname, p);
 			else if (mflag)
-				print_multiformat(alg->progname, p);
+				print_multiformat(alg->progname, p, NULL);
 			else
 				printf("%s\n", p);
 			if (cflag)
@@ -1015,14 +1020,21 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 				if (gnu_emu)
 					if (bflag)
 						printf("%s *%s", p, *argv);
-					else if (!fflag)
+					else if (!fflag && !mflag)
 						printf("%s  %s", p, *argv);
+					else if (mflag) {
+						if (fflag)
+							printf("%s:", "multi#");
+						print_multiformat(alg->progname, p, *argv);
+					}
 					else
 						printf("%s:%s  %s", alg->progname, p, *argv);
 				else
 					printf("%s %s", p, *argv);
-			else if (mflag)
-				print_multiformat(alg->progname, p);
+			else if (mflag) {
+				printf("%s (%s) = ", "MULTI#", *argv);
+				print_multiformat(alg->progname, p, NULL);
+			}
 			else
 				printf("%s (%s) = %s", alg->name, *argv, p);
 			if (checkAgainst) {
