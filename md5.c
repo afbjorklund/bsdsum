@@ -570,6 +570,20 @@ static unsigned int gnu_check(const char *checksumsfile)
 		linebuf[linelen] = '\0';
 		filename = linebuf + digestnamelen + 2;
 		hashstr = linebuf + linelen - hashstrlen;
+		/* multiformat */
+		if (mflag) {
+			char *c = strchr(linebuf, ' ');
+			if (c == NULL) {
+				malformed++;
+				continue;
+			}
+			*c = '\0';
+			hashstr = linebuf;
+			filename = c + 1;
+			if (*filename == ' ' || *filename == '*')
+				filename++;
+			goto record;
+		}
 		/*
 		 * supported formats:
 		 * BSD: <DigestName> (<Filename>): <Digest>
@@ -603,6 +617,7 @@ static unsigned int gnu_check(const char *checksumsfile)
 			malformed++;
 			continue;
 		}
+	record:
 		rec = malloc(sizeof (*rec));
 		if (rec == NULL)
 			errx(1, "malloc failed");
@@ -855,7 +870,7 @@ static int decode_hex(char c)
 static const char base32_lower[33] = "abcdefghijklmnopqrstuvwxyz234567";
 static const char base32_hex[33] =   "0123456789abcdefghijklmnopqrstuv";
 
-static void print_multiformat(const char *f, char *p, char *n)
+static char *string_multiformat(const char *f, char *p)
 {
 	unsigned int i;
 	unsigned char c;
@@ -891,7 +906,7 @@ static void print_multiformat(const char *f, char *p, char *n)
 		enc = 'm'; /* base64, mixed case - no padding */
 		base = 64;
 	} else {
-		return;
+		return NULL;
 	}
 
 	/* type-length-value (TLV) */
@@ -934,11 +949,11 @@ static void print_multiformat(const char *f, char *p, char *n)
 		len = 256 / 8;
 #endif
 	} else {
-		return;
+		return NULL;
 	}
 
 	outlen = (strlen(code) + len) * 2;
-	out = malloc(outlen);
+	out = calloc(1, outlen);
 	buf = malloc(strlen(code) + 1 + len + 1);
 	s = (char *)buf;
 	s += sprintf(s, "%s", code); /* varint code */
@@ -960,7 +975,7 @@ static void print_multiformat(const char *f, char *p, char *n)
 		}
 		o += sprintf(o, "%02x", (char)len);
 		o += sprintf(o, "%s", p);
-		*o = '\0';
+		outlen = o - out;
 		break;
 	case 32:
 		base32_encode(buf, strlen(code) + 1 + len, out);
@@ -972,13 +987,28 @@ static void print_multiformat(const char *f, char *p, char *n)
 		base64_encode(buf, strlen(code) + 1 + len, out);
 		break;
 	}
-	printf("%c", enc);
-	printf("%s", out);
+	o = malloc(1 + strlen(out) + 1);
+	s = o;
+	s += sprintf(s, "%c", enc);
+	s += sprintf(s, "%s", out);
+	*s = '\0';
 	free(out);
 	free(buf);
+	return o;
+}
 
+static void print_multiformat(const char *f, char *p, char *n)
+{
+	char *s;
+
+	s = string_multiformat(f, p);
+	if (s == NULL)
+		return;
+	printf("%s", s);
 	if (n != NULL)
 		printf("  %s", n);
+
+	free(s);
 }
 
 /*
@@ -988,6 +1018,7 @@ static void
 MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 {
 	bool checkfailed = false;
+	char *c;
 
 	if (p == NULL) {
 		if (!iflag || errno != ENOENT) {
@@ -997,12 +1028,16 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 		}
 		checked++;
 	} else {
+		if (mflag)
+			c = string_multiformat(alg->progname, p);
+		else
+			c = p;
 		/*
 		 * If argv is NULL we are reading from stdin, where the output
 		 * format has always been just the hash.
 		 */
 		if (cflag && gnu_emu) {
-			checkfailed = strcasecmp(checkAgainst, p) != 0;
+			checkfailed = strcasecmp(checkAgainst, c) != 0;
 			if (!qflag || checkfailed)
 				printf("%s: %s\n", *argv, checkfailed ? "FAILED" : "OK");
 		} else if (qflag || argv == NULL) {
@@ -1013,7 +1048,7 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 			else
 				printf("%s\n", p);
 			if (cflag)
-				checkfailed = strcasecmp(checkAgainst, p) != 0;
+				checkfailed = strcasecmp(checkAgainst, c) != 0;
 		} else {
 			if (rflag)
 				if (gnu_emu)
@@ -1038,14 +1073,16 @@ MDOutput(const Algorithm_t *alg, char *p, char *argv[])
 				printf("%s (%s) = %s", alg->name, *argv, p);
 			if (checkAgainst) {
 				char *q;
-				if ((q = strchr(p, ':')) != NULL)
-					p = q + 1;
-				checkfailed = strcasecmp(checkAgainst, p) != 0;
+				if (!mflag && (q = strchr(p, ':')) != NULL)
+					c = q + 1;
+				checkfailed = strcasecmp(checkAgainst, c) != 0;
 				if (!qflag && checkfailed)
 					printf(" [ Failed ]");
 			}
 			printf("\n");
 		}
+		if (mflag)
+			free(c);
 	}
 	if (checkfailed)
 		checksFailed++;
