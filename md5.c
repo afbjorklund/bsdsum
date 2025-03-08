@@ -679,7 +679,7 @@ main(int argc, char *argv[])
 	}
 
 	checked = 0;
-	encoding = NULL;
+	encoding = "base32";
 	failed = 0;
 	checkAgainst = NULL;
 	checksFailed = 0;
@@ -868,7 +868,7 @@ static void print_multiformat(const char *f, char *p)
 	size_t outlen;
 
 	/* multibase encoding */
-	if (encoding == NULL || strcmp(encoding, "none") == 0) {
+	if (strcmp(encoding, "none") == 0) {
 		printf("%c", '\0'); /* none */
 		base = 0;
 	} else if (strcmp(encoding, "base16") == 0) {
