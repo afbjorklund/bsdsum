@@ -860,33 +860,35 @@ static void print_multiformat(const char *f, char *p, char *n)
 	unsigned int i;
 	unsigned char c;
 	unsigned int base;
+	char enc;
 	char code[3];
 	unsigned int len;
 	unsigned char *buf;
 	char *s;
 	char *out;
 	size_t outlen;
+	char *o;
 
 	/* multibase encoding */
 	if (strcmp(encoding, "none") == 0) {
-		printf("%c", '\0'); /* none */
+		enc = '\0'; /* none */
 		base = 0;
 	} else if (strcmp(encoding, "base16") == 0) {
-		printf("%c", 'f'); /* base16, lower case */
+		enc = 'f'; /* base16, lower case */
 		base = 16;
 	} else if (strcmp(encoding, "base32") == 0) {
-		printf("%c", 'b'); /* base32, lower case - no padding */
+		enc = 'b'; /* base32, lower case - no padding */
 		base32_map = base32_lower;
 		base = 32;
 	} else if (strcmp(encoding, "base32hex") == 0) {
-		printf("%c", 'v'); /* base32hex, lower case - no padding */
+		enc = 'v'; /* base32hex, lower case - no padding */
 		base32_map = base32_hex;
 		base = 32;
 	} else if (strcmp(encoding, "base58btc") == 0) {
-		printf("%c", 'z'); /* base58btc, mixed case */
+		enc = 'z'; /* base58btc, mixed case */
 		base = 58;
 	} else if (strcmp(encoding, "base64") == 0) {
-		printf("%c", 'm'); /* base64, mixed case - no padding */
+		enc = 'm'; /* base64, mixed case - no padding */
 		base = 64;
 	} else {
 		return;
@@ -935,17 +937,6 @@ static void print_multiformat(const char *f, char *p, char *n)
 		return;
 	}
 
-	if (base == 16) {
-		for (i = 0; i < strlen(code); i++) {
-			printf("%02x", ((unsigned char *)code)[i]);
-		}
-		printf("%02x", (char)len);
-		printf("%s", p);
-		if (n != NULL)
-			printf("  %s", n);
-		return;
-	}
-
 	outlen = (strlen(code) + len) * 2;
 	out = malloc(outlen);
 	buf = malloc(strlen(code) + 1 + len + 1);
@@ -960,21 +951,29 @@ static void print_multiformat(const char *f, char *p, char *n)
 	*s = '\0';
 	switch (base) {
 	case 0:
-		printf("%s", buf);
+		sprintf(out, "%s", buf);
+		break;
+	case 16:
+		o = out;
+		for (i = 0; i < strlen(code); i++) {
+			o += sprintf(o, "%02x", ((unsigned char *)code)[i]);
+		}
+		o += sprintf(o, "%02x", (char)len);
+		o += sprintf(o, "%s", p);
+		*o = '\0';
 		break;
 	case 32:
 		base32_encode(buf, strlen(code) + 1 + len, out);
-		printf("%s", out);
 		break;
 	case 58:
 		b58enc(out, &outlen, buf, strlen(code) + 1 + len);
-		printf("%s", out);
 		break;
 	case 64:
 		base64_encode(buf, strlen(code) + 1 + len, out);
-		printf("%s", out);
 		break;
 	}
+	printf("%c", enc);
+	printf("%s", out);
 	free(out);
 	free(buf);
 
